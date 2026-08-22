@@ -1,0 +1,2663 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sofia</title>
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Sofia" />
+  <link rel="manifest" href="sofia.webmanifest" />
+  <link rel="icon" href="sofia-icon.svg" type="image/svg+xml" />
+  <style>
+    :root{
+      --bg:#eef2f7;
+      --panel:#ffffff;
+      --ink:#0f172a;
+      --text:#1e293b;
+      --muted:#64748b;
+      --line:#d8e0ea;
+      --soft:#f8fafc;
+      --primary:#2563eb;
+      --teal:#0ea5a4;
+      --amber:#f59e0b;
+      --red:#ef4444;
+      --green:#16a34a;
+      --violet:#7c3aed;
+      --shadow:0 12px 32px rgba(15,23,42,.08);
+      --radius:12px;
+    }
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
+    body{
+      margin:0;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(37,99,235,.08), transparent 28%),
+        radial-gradient(circle at top right, rgba(14,165,164,.08), transparent 26%),
+        linear-gradient(180deg,#f7f9fc 0%, #eef2f7 100%);
+      font:14px/1.5 "Inter","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    }
+    button,input,select,textarea{font:inherit}
+    button{
+      border:1px solid transparent;
+      border-radius:10px;
+      padding:10px 14px;
+      background:#fff;
+      color:var(--text);
+      cursor:pointer;
+      transition:.15s ease;
+    }
+    button:hover{transform:translateY(-1px)}
+    button.primary{background:var(--primary);color:#fff;box-shadow:0 10px 24px rgba(37,99,235,.18)}
+    button.secondary{background:#eef2ff;color:#1e3a8a}
+    button.ghost{border-color:var(--line);background:#fff}
+    button.danger{border-color:#fecdd3;background:#fff1f2;color:#be123c}
+    button.small{padding:7px 10px;border-radius:9px;font-size:12px}
+    input,select,textarea{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:10px 12px;
+      background:#fff;
+      color:var(--ink);
+      outline:none;
+      transition:border-color .15s ease, box-shadow .15s ease;
+    }
+    input:focus,select:focus,textarea:focus{
+      border-color:#60a5fa;
+      box-shadow:0 0 0 3px rgba(96,165,250,.16);
+    }
+    textarea{resize:vertical;min-height:100px}
+    .app{
+      display:grid;
+      grid-template-columns:280px minmax(0,1fr);
+      min-height:100vh;
+    }
+    .sidebar{
+      padding:22px 18px;
+      background:#0f172a;
+      color:#e2e8f0;
+      border-right:1px solid rgba(148,163,184,.18);
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+    .brand{display:flex;gap:14px;align-items:center}
+    .brand-mark{
+      width:48px;height:48px;border-radius:14px;
+      background:linear-gradient(135deg,#2563eb,#0ea5a4);
+      position:relative;
+      box-shadow:0 14px 28px rgba(37,99,235,.26);
+    }
+    .brand-mark::before{
+      content:'';
+      position:absolute;left:13px;top:12px;width:22px;height:24px;
+      border-radius:7px;background:#fff;
+      box-shadow:inset 0 6px 0 #f7c65d;
+    }
+    .brand-mark::after{
+      content:'';
+      position:absolute;left:19px;top:22px;width:10px;height:8px;
+      border-radius:0 0 8px 8px;background:#ff7b8f;
+      transform:rotate(-45deg);
+    }
+    .brand h1{margin:0;font-size:20px;line-height:1.15}
+    .brand p{margin:4px 0 0;font-size:12px;color:#94a3b8}
+    .nav{display:grid;gap:8px}
+    .nav-item{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 14px;
+      border-radius:11px;
+      border:1px solid rgba(148,163,184,.12);
+      background:rgba(15,23,42,.32);
+      color:#e2e8f0;
+      text-align:left;
+    }
+    .nav-item.active{
+      background:#e2e8f0;
+      color:#0f172a;
+    }
+    .nav-item .count{
+      min-width:24px;
+      padding:2px 8px;
+      border-radius:999px;
+      background:rgba(148,163,184,.2);
+      font-size:12px;
+      text-align:center;
+    }
+    .nav-item.active .count{background:#fff}
+    .sidebar-footer{
+      margin-top:auto;
+      display:grid;
+      gap:8px;
+    }
+    .cloud-box{
+      padding:12px;display:grid;gap:8px;
+      border:1px solid rgba(148,163,184,.26);border-radius:10px;
+      background:rgba(15,23,42,.28);
+    }
+    .cloud-box input{padding:8px 10px;background:rgba(255,255,255,.96);font-size:12px}
+    .cloud-status{font-size:12px;color:#bfdbfe;line-height:1.4}
+    .cloud-user{font-size:12px;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .cloud-actions{display:flex;gap:8px}
+    .cloud-actions button{flex:1;padding:8px 9px;font-size:12px}
+    .sidebar-footer button{width:100%}
+    .content{
+      padding:24px;
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+    .topbar{
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      gap:18px;
+      flex-wrap:wrap;
+    }
+    .eyebrow{font-size:12px;color:var(--muted);letter-spacing:.04em}
+    .title-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .page-title{margin:2px 0 0;font-size:28px;line-height:1.1}
+    .save-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#eef2ff;
+      color:#1e3a8a;
+      font-size:12px;
+    }
+    .top-actions{
+      display:flex;
+      align-items:end;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .search{
+      display:grid;
+      gap:6px;
+    }
+    .search input{width:min(44vw,460px)}
+    .panel{
+      display:none;
+      gap:18px;
+    }
+    .panel.active{display:grid}
+    .section-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+    .section-head h3{margin:0;font-size:18px}
+    .section-head p{margin:4px 0 0;color:var(--muted);font-size:13px}
+    .layout-2{
+      display:grid;
+      grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);
+      gap:18px;
+    }
+    .layout-3{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+    }
+    .block{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:0 1px 0 rgba(15,23,42,.02);
+    }
+    .block h4{margin:0 0 10px;font-size:15px}
+    .block .sub{margin:0 0 12px;color:var(--muted);font-size:12px}
+    .stat-grid{
+      display:grid;
+      grid-template-columns:repeat(6,minmax(0,1fr));
+      gap:12px;
+    }
+    .stat{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:14px;
+      min-height:96px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .stat .label{font-size:12px;color:var(--muted)}
+    .stat .value{font-size:26px;font-weight:700;letter-spacing:0}
+    .stat .hint{font-size:12px;color:var(--muted)}
+    .grid-form{
+      display:grid;
+      grid-template-columns:repeat(12,minmax(0,1fr));
+      gap:10px;
+    }
+    .field{display:grid;gap:6px}
+    .field label{font-size:12px;color:var(--muted)}
+    .c-12{grid-column:span 12}
+    .c-9{grid-column:span 9}
+    .c-8{grid-column:span 8}
+    .c-6{grid-column:span 6}
+    .c-5{grid-column:span 5}
+    .c-4{grid-column:span 4}
+    .c-3{grid-column:span 3}
+    .c-2{grid-column:span 2}
+    .c-1{grid-column:span 1}
+    .inline-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .list{display:grid;gap:10px}
+    .item{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:12px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .item-main{min-width:0;display:grid;gap:6px}
+    .item-title{font-weight:650}
+    .item-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.4;
+    }
+    .item-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      justify-content:flex-end;
+      align-items:center;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:3px 8px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:600;
+      white-space:nowrap;
+    }
+    .b-gray{background:#e2e8f0;color:#334155}
+    .b-blue{background:#dbeafe;color:#1d4ed8}
+    .b-teal{background:#ccfbf1;color:#0f766e}
+    .b-amber{background:#fef3c7;color:#b45309}
+    .b-red{background:#fee2e2;color:#b91c1c}
+    .b-green{background:#dcfce7;color:#166534}
+    .b-violet{background:#ede9fe;color:#6d28d9}
+    .soft-note{
+      padding:12px 14px;
+      border:1px dashed #cbd5e1;
+      border-radius:12px;
+      color:var(--muted);
+      background:#fbfdff;
+    }
+    .preview{
+      white-space:pre-wrap;
+      background:#0b1220;
+      color:#e2e8f0;
+      border:1px solid #1e293b;
+      border-radius:12px;
+      padding:16px;
+      min-height:260px;
+      line-height:1.7;
+      overflow:auto;
+    }
+    .preview-head{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .week-grid{
+      display:grid;
+      grid-template-columns:repeat(7,minmax(180px,1fr));
+      gap:10px;
+      overflow-x:auto;
+      padding-bottom:4px;
+    }
+    .day{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:12px;
+      min-height:184px;
+    }
+    .day.today{
+      border-color:#60a5fa;
+      box-shadow:0 0 0 1px rgba(96,165,250,.12);
+    }
+    .day-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      margin-bottom:10px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .day-name{font-weight:700;color:var(--text)}
+    .mini-list{display:grid;gap:6px}
+    .mini-event{
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid #e2e8f0;
+      background:#f8fafc;
+      font-size:12px;
+      line-height:1.45;
+    }
+    .mini-event .mini-time{color:var(--muted);font-size:11px}
+    .bar-list{display:grid;gap:10px}
+    .bar-row{
+      display:grid;
+      grid-template-columns:140px minmax(0,1fr) 56px;
+      gap:10px;
+      align-items:center;
+    }
+    .bar-track{
+      height:10px;
+      background:#e2e8f0;
+      border-radius:999px;
+      overflow:hidden;
+    }
+    .bar-fill{
+      height:100%;
+      border-radius:999px;
+      background:linear-gradient(90deg,#2563eb,#0ea5a4);
+    }
+    .review-box{
+      display:grid;
+      gap:10px;
+    }
+    .review-score{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .score-pill{
+      width:64px;height:64px;border-radius:18px;
+      display:grid;place-items:center;
+      background:linear-gradient(135deg,#0f172a,#2563eb);
+      color:#fff;font-weight:700;font-size:20px;
+    }
+    .score-pill.b-green{background:linear-gradient(135deg,#166534,#0ea5a4)}
+    .score-pill.b-amber{background:linear-gradient(135deg,#b45309,#f59e0b)}
+    .score-pill.b-red{background:linear-gradient(135deg,#991b1b,#ef4444)}
+    .issues{display:grid;gap:8px}
+    .issue{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px 12px;
+      background:#fff;
+      display:grid;
+      gap:4px;
+    }
+    .issue .top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+    .issue .title{font-weight:650}
+    .issue .desc{color:var(--muted);font-size:12px}
+    .type-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid var(--line);
+      font-size:12px;
+      color:var(--text);
+    }
+    .swatch{
+      width:10px;height:10px;border-radius:999px;flex:none;
+      box-shadow:0 0 0 2px rgba(255,255,255,.7) inset;
+    }
+    .toast{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      background:#0f172a;
+      color:#fff;
+      padding:12px 14px;
+      border-radius:12px;
+      box-shadow:0 16px 40px rgba(15,23,42,.22);
+      transform:translateY(16px);
+      opacity:0;
+      pointer-events:none;
+      transition:.2s ease;
+      max-width:360px;
+      z-index:100;
+    }
+    .toast.show{opacity:1;transform:translateY(0)}
+    .empty{
+      padding:18px;
+      border:1px dashed #cbd5e1;
+      border-radius:12px;
+      color:var(--muted);
+      background:#fbfdff;
+    }
+    .hint-row{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .mini-pill{
+      display:inline-flex;
+      align-items:center;
+      padding:2px 8px;
+      border-radius:999px;
+      background:#f1f5f9;
+      color:#334155;
+      font-size:12px;
+    }
+    @media (max-width:1240px){
+      .app{grid-template-columns:1fr}
+      .sidebar{position:sticky;top:0;z-index:20}
+      .stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .layout-2{grid-template-columns:1fr}
+    }
+    @media (max-width:820px){
+      .content{padding:14px}
+      .topbar{align-items:stretch}
+      .top-actions{justify-content:stretch}
+      .search input{width:100%}
+      .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .layout-3{grid-template-columns:1fr}
+      .week-grid{grid-template-columns:repeat(7,minmax(156px,1fr))}
+      .bar-row{grid-template-columns:1fr}
+    }
+    @media (max-width:680px){
+      .page-title{font-size:24px}
+      .grid-form{grid-template-columns:1fr}
+      .c-12,.c-9,.c-8,.c-6,.c-5,.c-4,.c-3,.c-2{grid-column:span 12}
+      .item{flex-direction:column}
+      .item-actions{justify-content:flex-start}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-label="工作台图标"></div>
+        <div>
+          <h1>Sofia</h1>
+          <p>本地保存 · 单人使用</p>
+        </div>
+      </div>
+
+      <nav class="nav" id="nav">
+        <button class="nav-item active" data-tab="overview"><span>总览</span><span class="count" id="count-overview">0</span></button>
+        <button class="nav-item" data-tab="todos"><span>待办</span><span class="count" id="count-todos">0</span></button>
+        <button class="nav-item" data-tab="contracts"><span>合同制作</span><span class="count" id="count-contracts">0</span></button>
+        <button class="nav-item" data-tab="review"><span>合同审核</span><span class="count" id="count-review">0</span></button>
+        <button class="nav-item" data-tab="schedule"><span>排期</span><span class="count" id="count-schedule">0</span></button>
+        <button class="nav-item" data-tab="shipments"><span>快递</span><span class="count" id="count-shipments">0</span></button>
+        <button class="nav-item" data-tab="hours"><span>工时</span><span class="count" id="count-hours">0</span></button>
+        <button class="nav-item" data-tab="customers"><span>客户类型</span><span class="count" id="count-customers">0</span></button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="cloud-box">
+          <div class="eyebrow">云端同步</div>
+          <div class="cloud-status" id="cloudStatus">输入同一同步口令即可跨设备使用</div>
+          <div class="cloud-user" id="cloudUser" hidden></div>
+          <input id="syncKeyInput" type="password" autocomplete="off" placeholder="输入同步口令" />
+          <div class="cloud-actions">
+            <button class="secondary" id="syncConnectBtn">连接云端</button>
+            <button class="ghost" id="syncGenerateBtn">生成口令</button>
+            <button class="ghost" id="cloudSyncBtn" hidden>立即同步</button>
+          </div>
+          <button class="ghost small" id="cloudLogoutBtn" hidden>清除本机口令</button>
+        </div>
+        <button class="ghost" id="exportBtn">导出备份</button>
+        <button class="ghost" id="importBtn">导入备份</button>
+        <input id="importFile" type="file" accept="application/json" hidden />
+      </div>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow" id="todayLabel">今天</div>
+          <div class="title-row">
+            <h2 class="page-title" id="pageTitle">总览</h2>
+            <span class="save-chip" id="saveState">自动保存中</span>
+          </div>
+        </div>
+        <div class="top-actions">
+          <label class="search">
+            <span class="eyebrow">搜索</span>
+            <input id="globalSearch" placeholder="搜待办、合同、客户、排期..." />
+          </label>
+          <button class="secondary" data-jump="todos">+ 待办</button>
+          <button class="secondary" data-jump="contracts">+ 合同</button>
+          <button class="secondary" data-jump="hours">+ 工时</button>
+        </div>
+      </header>
+
+      <section class="panel active" data-tab="overview" id="panel-overview">
+        <div class="section-head">
+          <div>
+            <h3>工作总览</h3>
+            <p>今天要处理什么，一眼看完。</p>
+          </div>
+          <div class="inline-actions">
+            <span class="mini-pill" id="overviewSaved">已同步到本地</span>
+          </div>
+        </div>
+        <div class="stat-grid" id="overviewStats"></div>
+        <div class="layout-2">
+          <div class="block">
+            <h4>今天与接下来 7 天</h4>
+            <p class="sub">待办、排期和快递一起看，减少来回切换。</p>
+            <div class="list" id="upcomingList"></div>
+          </div>
+          <div class="block">
+            <h4>最近变动</h4>
+            <p class="sub">按更新时间汇总，方便回忆刚才做了什么。</p>
+            <div class="list" id="activityList"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-tab="todos" id="panel-todos">
+        <div class="section-head">
+          <div>
+            <h3>待办</h3>
+            <p>把当下要推进的事收拢到一起。</p>
+          </div>
+          <div class="inline-actions">
+            <select id="todoStatusFilter" style="width:160px">
+              <option value="all">全部状态</option>
+              <option value="open">未完成</option>
+              <option value="done">已完成</option>
+            </select>
+          </div>
+        </div>
+        <div class="block">
+          <form id="todoForm" class="grid-form">
+            <div class="field c-4"><label for="todoTitle">待办标题</label><input id="todoTitle" name="title" placeholder="例如：确认今天合同版式" required /></div>
+            <div class="field c-2"><label for="todoDue">截止日期</label><input id="todoDue" name="dueDate" type="date" /></div>
+            <div class="field c-2"><label for="todoPriority">优先级</label><select id="todoPriority" name="priority"><option>高</option><option selected>中</option><option>低</option></select></div>
+            <div class="field c-2"><label for="todoCategory">分类</label><select id="todoCategory" name="category"><option>合同</option><option>排期</option><option>快递</option><option>工时</option><option>客户</option><option selected>其他</option></select></div>
+            <div class="field c-2"><label for="todoCustomer">关联客户</label><select id="todoCustomer" name="customerId"></select></div>
+            <div class="field c-8"><label for="todoNote">备注</label><input id="todoNote" name="note" placeholder="补充背景、链接、提醒点" /></div>
+            <div class="field c-4" style="align-self:end">
+              <div class="inline-actions">
+                <button class="primary" type="submit" id="todoSubmit">保存待办</button>
+                <button class="ghost" type="button" id="todoClear">清空</button>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="list" id="todoList"></div>
+      </section>
+
+      <section class="panel" data-tab="contracts" id="panel-contracts">
+        <div class="section-head">
+          <div>
+            <h3>合同制作</h3>
+            <p>先把结构搭起来，再慢慢填细节。</p>
+          </div>
+          <div class="inline-actions">
+            <button class="secondary" id="copyDraftBtn" type="button">复制草稿</button>
+          </div>
+        </div>
+        <div class="layout-2">
+          <div class="block">
+            <h4>合同信息</h4>
+            <p class="sub">左边填信息，右边实时生成合同草稿。</p>
+            <form id="contractForm" class="grid-form">
+              <div class="field c-4"><label for="contractTitle">合同名称</label><input id="contractTitle" name="title" placeholder="例如：品牌短视频制作合同" required /></div>
+              <div class="field c-4"><label for="contractMyName">我方名称</label><input id="contractMyName" name="myName" placeholder="例如：XX工作室" /></div>
+              <div class="field c-4"><label for="contractCustomer">客户</label><select id="contractCustomer" name="customerId"></select></div>
+              <div class="field c-4"><label for="contractCustomerName">对方名称</label><input id="contractCustomerName" name="counterpartyName" placeholder="可自动从客户带出" /></div>
+              <div class="field c-4"><label for="contractType">合同类型</label><select id="contractType" name="type"><option>制作合同</option><option>服务合同</option><option>采购合同</option><option>NDA</option><option>其他</option></select></div>
+              <div class="field c-4"><label for="contractAmount">金额（元）</label><input id="contractAmount" name="amount" type="number" step="0.01" min="0" placeholder="0" /></div>
+              <div class="field c-3"><label for="contractStart">开始日期</label><input id="contractStart" name="startDate" type="date" /></div>
+              <div class="field c-3"><label for="contractEnd">结束日期</label><input id="contractEnd" name="endDate" type="date" /></div>
+              <div class="field c-3"><label for="contractSign">签署日期</label><input id="contractSign" name="signDate" type="date" /></div>
+              <div class="field c-3"><label for="contractAutoRenew">续约</label>
+                <select id="contractAutoRenew" name="autoRenew">
+                  <option value="no" selected>不自动续约</option>
+                  <option value="yes">自动续约</option>
+                </select>
+              </div>
+              <div class="field c-12"><label for="contractPayment">付款节点</label><input id="contractPayment" name="payment" placeholder="例如：30%预付款，交付后 7 日内付尾款" /></div>
+              <div class="field c-12"><label for="contractDeliver">交付与验收</label><textarea id="contractDeliver" name="delivery" placeholder="例如：交付 MP4、源文件、修改次数、验收期限"></textarea></div>
+              <div class="field c-12"><label for="contractNote">备注</label><textarea id="contractNote" name="note" placeholder="补充保密、发票、违约、附件等说明"></textarea></div>
+              <div class="field c-12">
+                <div class="inline-actions">
+                  <button class="primary" type="submit" id="contractSubmit">保存草稿</button>
+                  <button class="ghost" type="button" id="contractReset">清空</button>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="block">
+            <div class="preview-head">
+              <div>
+                <h4 style="margin:0">草稿预览</h4>
+                <p class="sub" style="margin:4px 0 0">可直接复制给自己或送去审核。</p>
+              </div>
+              <span class="badge b-violet" id="contractDraftTag">未保存</span>
+            </div>
+            <div id="contractPreview" class="preview"></div>
+          </div>
+        </div>
+        <div class="block">
+          <h4>草稿列表</h4>
+          <p class="sub">点击可继续编辑、复制或送审。</p>
+          <div class="list" id="contractList"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-tab="review" id="panel-review">
+        <div class="section-head">
+          <div>
+            <h3>合同审核</h3>
+            <p>用规则先把明显风险抓出来，再做人工判断。</p>
+          </div>
+          <div class="inline-actions">
+            <select id="reviewSource" style="width:240px"></select>
+            <button class="secondary" type="button" id="loadReviewSource">载入草稿</button>
+          </div>
+        </div>
+        <div class="layout-2">
+          <div class="block">
+            <h4>待审核文本</h4>
+            <p class="sub">可以直接粘贴，也可以从合同草稿载入。</p>
+            <form id="reviewForm" class="grid-form">
+              <div class="field c-12"><label for="reviewTitle">审核标题</label><input id="reviewTitle" name="title" placeholder="例如：XX项目制作合同审核" /></div>
+              <div class="field c-12"><label for="reviewText">合同文本</label><textarea id="reviewText" name="text" placeholder="粘贴合同正文或草稿文本"></textarea></div>
+              <div class="field c-12">
+                <div class="inline-actions">
+                  <button class="primary" type="submit">分析并保存</button>
+                  <button class="ghost" type="button" id="reviewClear">清空</button>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="block review-box">
+            <div class="review-score">
+              <div class="score-pill" id="reviewScore">--</div>
+              <div>
+                <h4 style="margin:0">审核结果</h4>
+                <p class="sub" style="margin:4px 0 0">分数只是提示，不是结论。</p>
+              </div>
+            </div>
+            <div id="reviewResult" class="issues"></div>
+          </div>
+        </div>
+        <div class="block">
+          <h4>审核记录</h4>
+          <div class="list" id="reviewList"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-tab="schedule" id="panel-schedule">
+        <div class="section-head">
+          <div>
+            <h3>排期</h3>
+            <p>把沟通、交付、拍摄、审稿的节奏排清楚。</p>
+          </div>
+        </div>
+        <div class="block">
+          <form id="scheduleForm" class="grid-form">
+            <div class="field c-4"><label for="scheduleTitle">事项</label><input id="scheduleTitle" name="title" placeholder="例如：客户确认脚本" required /></div>
+            <div class="field c-2"><label for="scheduleDate">日期</label><input id="scheduleDate" name="date" type="date" /></div>
+            <div class="field c-2"><label for="scheduleTime">时间</label><input id="scheduleTime" name="time" type="time" /></div>
+            <div class="field c-2"><label for="scheduleKind">类型</label><select id="scheduleKind" name="kind"><option>沟通</option><option>拍摄</option><option>交付</option><option>审核</option><option>回款</option><option>其他</option></select></div>
+            <div class="field c-2"><label for="scheduleStatus">状态</label><select id="scheduleStatus" name="status"><option>待开始</option><option>进行中</option><option>已完成</option><option>已改期</option></select></div>
+            <div class="field c-4"><label for="scheduleCustomer">客户</label><select id="scheduleCustomer" name="customerId"></select></div>
+            <div class="field c-4"><label for="scheduleContract">关联合同</label><select id="scheduleContract" name="contractId"></select></div>
+            <div class="field c-4"><label for="scheduleNote">备注</label><input id="scheduleNote" name="note" placeholder="会议链接、地点、要带的资料" /></div>
+            <div class="field c-12">
+              <div class="inline-actions">
+                <button class="primary" type="submit" id="scheduleSubmit">保存排期</button>
+                <button class="ghost" type="button" id="scheduleClear">清空</button>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="block">
+          <h4>本周排期</h4>
+          <p class="sub">上面排出来的事，直接压到周视图里。</p>
+          <div class="week-grid" id="scheduleWeek"></div>
+        </div>
+        <div class="block">
+          <h4>排期列表</h4>
+          <div class="list" id="scheduleList"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-tab="shipments" id="panel-shipments">
+        <div class="section-head">
+          <div>
+            <h3>快递</h3>
+            <p>样品、合同、物料和文件都能在这里留痕。</p>
+          </div>
+        </div>
+        <div class="block">
+          <form id="shipmentForm" class="grid-form">
+            <div class="field c-4"><label for="shipmentTitle">物件名称</label><input id="shipmentTitle" name="title" placeholder="例如：样片 U 盘" required /></div>
+            <div class="field c-3"><label for="shipmentCourier">快递公司</label><input id="shipmentCourier" name="courier" placeholder="顺丰 / 京东 / EMS" /></div>
+            <div class="field c-5"><label for="shipmentTracking">运单号</label><input id="shipmentTracking" name="tracking" placeholder="填写后方便快速复制" /></div>
+            <div class="field c-3"><label for="shipmentCustomer">客户</label><select id="shipmentCustomer" name="customerId"></select></div>
+            <div class="field c-3"><label for="shipmentReceiver">收件人</label><input id="shipmentReceiver" name="receiver" placeholder="对方联系人" /></div>
+            <div class="field c-2"><label for="shipmentShipDate">寄出日</label><input id="shipmentShipDate" name="shipDate" type="date" /></div>
+            <div class="field c-2"><label for="shipmentEta">预计到达</label><input id="shipmentEta" name="eta" type="date" /></div>
+            <div class="field c-2"><label for="shipmentStatus">状态</label><select id="shipmentStatus" name="status"><option>待寄出</option><option>已揽收</option><option>运输中</option><option>派送中</option><option>已签收</option></select></div>
+            <div class="field c-12"><label for="shipmentNote">备注</label><input id="shipmentNote" name="note" placeholder="例如：文件已拍照留底，签收后通知" /></div>
+            <div class="field c-12">
+              <div class="inline-actions">
+                <button class="primary" type="submit" id="shipmentSubmit">保存快递</button>
+                <button class="ghost" type="button" id="shipmentClear">清空</button>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="block">
+          <h4>快递列表</h4>
+          <div class="list" id="shipmentList"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-tab="hours" id="panel-hours">
+        <div class="section-head">
+          <div>
+            <h3>工时</h3>
+            <p>记录投入，方便算账、回看和复盘。</p>
+          </div>
+        </div>
+        <div class="layout-2">
+          <div class="block">
+            <h4>工时录入</h4>
+            <form id="timeForm" class="grid-form">
+              <div class="field c-2"><label for="timeDate">日期</label><input id="timeDate" name="date" type="date" /></div>
+              <div class="field c-3"><label for="timeCustomer">客户</label><select id="timeCustomer" name="customerId"></select></div>
+              <div class="field c-3"><label for="timeProject">项目</label><input id="timeProject" name="project" placeholder="例如：品牌短视频" /></div>
+              <div class="field c-2"><label for="timeTask">事项</label><input id="timeTask" name="task" placeholder="例如：脚本修改" /></div>
+              <div class="field c-1"><label for="timeHours">时长</label><input id="timeHours" name="hours" type="number" step="0.1" min="0" placeholder="1.5" /></div>
+              <div class="field c-2"><label for="timeBillable">计费</label><select id="timeBillable" name="billable"><option value="yes">计费</option><option value="no">不计费</option></select></div>
+              <div class="field c-12"><label for="timeNote">备注</label><input id="timeNote" name="note" placeholder="今天卡在哪里、做了什么、是否需要回头看" /></div>
+              <div class="field c-12">
+                <div class="inline-actions">
+                  <button class="primary" type="submit" id="timeSubmit">保存工时</button>
+                  <button class="ghost" type="button" id="timeClear">清空</button>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="block">
+            <h4>本月概览</h4>
+            <div class="stat-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:12px" id="hourStats"></div>
+            <div class="bar-list" id="hourBreakdown"></div>
+          </div>
+        </div>
+        <div class="block">
+          <h4>工时明细</h4>
+          <div class="list" id="timeList"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-tab="customers" id="panel-customers">
+        <div class="section-head">
+          <div>
+            <h3>客户类型</h3>
+            <p>先把类型和颜色理顺，再去管理客户。</p>
+          </div>
+        </div>
+        <div class="layout-2">
+          <div class="block">
+            <h4>类型管理</h4>
+            <p class="sub">类型会同步到合同、排期、快递和工时。</p>
+            <form id="typeForm" class="grid-form">
+              <div class="field c-5"><label for="typeName">类型名称</label><input id="typeName" name="name" placeholder="例如：重点客户" required /></div>
+              <div class="field c-3"><label for="typeColor">颜色</label><input id="typeColor" name="color" type="color" value="#2563eb" /></div>
+              <div class="field c-4"><label for="typeNote">说明</label><input id="typeNote" name="note" placeholder="例如：优先跟进" /></div>
+              <div class="field c-12">
+                <div class="inline-actions">
+                  <button class="primary" type="submit" id="typeSubmit">保存类型</button>
+                  <button class="ghost" type="button" id="typeClear">清空</button>
+                </div>
+              </div>
+            </form>
+            <div style="margin-top:12px" class="list" id="typeList"></div>
+          </div>
+          <div class="block">
+            <h4>客户档案</h4>
+            <p class="sub">客户类型会直接带到别的模块里。</p>
+            <form id="customerForm" class="grid-form">
+              <div class="field c-4"><label for="customerName">客户名称</label><input id="customerName" name="name" placeholder="例如：星河传媒" required /></div>
+              <div class="field c-3"><label for="customerType">客户类型</label><select id="customerType" name="typeId"></select></div>
+              <div class="field c-3"><label for="customerIndustry">行业</label><input id="customerIndustry" name="industry" placeholder="例如：教育 / 电商 / 品牌" /></div>
+              <div class="field c-2"><label for="customerStatus">状态</label><select id="customerStatus" name="status"><option>活跃</option><option>跟进中</option><option>暂停</option></select></div>
+              <div class="field c-4"><label for="customerContact">联系人</label><input id="customerContact" name="contact" placeholder="姓名 / 电话 / 微信" /></div>
+              <div class="field c-8"><label for="customerNote">备注</label><input id="customerNote" name="note" placeholder="合作习惯、偏好、风险点" /></div>
+              <div class="field c-12">
+                <div class="inline-actions">
+                  <button class="primary" type="submit" id="customerSubmit">保存客户</button>
+                  <button class="ghost" type="button" id="customerClear">清空</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="block">
+          <h4>客户列表</h4>
+          <div class="list" id="customerList"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'chengpian-workbench-v1';
+      const SYNC_KEY_STORAGE = 'sofia-sync-key-v1';
+      const SUPABASE_URL = 'https://orkwowolassrakgtplrl.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ya3dvd29sYXNzcmFrZ3RwbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNzE2NTksImV4cCI6MjEwMjk0NzY1OX0.iNRUkrpXakuKBqcrizrPuJHpqiKCm3u8rwO0wVzzpxw';
+      const CLOUD_TABLE = 'sofia_workspace';
+      const TAB_LABELS = {
+        overview: '总览',
+        todos: '待办',
+        contracts: '合同制作',
+        review: '合同审核',
+        schedule: '排期',
+        shipments: '快递',
+        hours: '工时',
+        customers: '客户类型'
+      };
+
+      const COLORS = ['#2563eb', '#0ea5a4', '#f59e0b', '#ef4444', '#16a34a', '#7c3aed', '#0f766e', '#ea580c'];
+      const currency = new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 2 });
+
+      const els = {
+        nav: document.getElementById('nav'),
+        pageTitle: document.getElementById('pageTitle'),
+        todayLabel: document.getElementById('todayLabel'),
+        saveState: document.getElementById('saveState'),
+        overviewSaved: document.getElementById('overviewSaved'),
+        cloudStatus: document.getElementById('cloudStatus'),
+        cloudUser: document.getElementById('cloudUser'),
+        syncKeyInput: document.getElementById('syncKeyInput'),
+        syncConnectBtn: document.getElementById('syncConnectBtn'),
+        syncGenerateBtn: document.getElementById('syncGenerateBtn'),
+        cloudSyncBtn: document.getElementById('cloudSyncBtn'),
+        cloudLogoutBtn: document.getElementById('cloudLogoutBtn'),
+        globalSearch: document.getElementById('globalSearch'),
+        exportBtn: document.getElementById('exportBtn'),
+        importBtn: document.getElementById('importBtn'),
+        importFile: document.getElementById('importFile'),
+        overviewStats: document.getElementById('overviewStats'),
+        upcomingList: document.getElementById('upcomingList'),
+        activityList: document.getElementById('activityList'),
+        todoStatusFilter: document.getElementById('todoStatusFilter'),
+        todoForm: document.getElementById('todoForm'),
+        todoSubmit: document.getElementById('todoSubmit'),
+        todoClear: document.getElementById('todoClear'),
+        todoList: document.getElementById('todoList'),
+        todoCustomer: document.getElementById('todoCustomer'),
+        contractForm: document.getElementById('contractForm'),
+        contractSubmit: document.getElementById('contractSubmit'),
+        contractReset: document.getElementById('contractReset'),
+        contractDraftTag: document.getElementById('contractDraftTag'),
+        contractPreview: document.getElementById('contractPreview'),
+        contractList: document.getElementById('contractList'),
+        contractCustomer: document.getElementById('contractCustomer'),
+        contractCustomerName: document.getElementById('contractCustomerName'),
+        contractType: document.getElementById('contractType'),
+        contractMyName: document.getElementById('contractMyName'),
+        contractTitle: document.getElementById('contractTitle'),
+        contractAmount: document.getElementById('contractAmount'),
+        contractStart: document.getElementById('contractStart'),
+        contractEnd: document.getElementById('contractEnd'),
+        contractSign: document.getElementById('contractSign'),
+        contractAutoRenew: document.getElementById('contractAutoRenew'),
+        contractPayment: document.getElementById('contractPayment'),
+        contractDeliver: document.getElementById('contractDeliver'),
+        contractNote: document.getElementById('contractNote'),
+        copyDraftBtn: document.getElementById('copyDraftBtn'),
+        reviewForm: document.getElementById('reviewForm'),
+        reviewClear: document.getElementById('reviewClear'),
+        reviewTitle: document.getElementById('reviewTitle'),
+        reviewText: document.getElementById('reviewText'),
+        reviewScore: document.getElementById('reviewScore'),
+        reviewResult: document.getElementById('reviewResult'),
+        reviewList: document.getElementById('reviewList'),
+        reviewSource: document.getElementById('reviewSource'),
+        loadReviewSource: document.getElementById('loadReviewSource'),
+        scheduleForm: document.getElementById('scheduleForm'),
+        scheduleSubmit: document.getElementById('scheduleSubmit'),
+        scheduleClear: document.getElementById('scheduleClear'),
+        scheduleWeek: document.getElementById('scheduleWeek'),
+        scheduleList: document.getElementById('scheduleList'),
+        scheduleCustomer: document.getElementById('scheduleCustomer'),
+        scheduleContract: document.getElementById('scheduleContract'),
+        shipmentForm: document.getElementById('shipmentForm'),
+        shipmentSubmit: document.getElementById('shipmentSubmit'),
+        shipmentClear: document.getElementById('shipmentClear'),
+        shipmentList: document.getElementById('shipmentList'),
+        shipmentCustomer: document.getElementById('shipmentCustomer'),
+        timeForm: document.getElementById('timeForm'),
+        timeSubmit: document.getElementById('timeSubmit'),
+        timeClear: document.getElementById('timeClear'),
+        timeList: document.getElementById('timeList'),
+        hourStats: document.getElementById('hourStats'),
+        hourBreakdown: document.getElementById('hourBreakdown'),
+        timeCustomer: document.getElementById('timeCustomer'),
+        typeForm: document.getElementById('typeForm'),
+        typeSubmit: document.getElementById('typeSubmit'),
+        typeClear: document.getElementById('typeClear'),
+        typeList: document.getElementById('typeList'),
+        customerForm: document.getElementById('customerForm'),
+        customerSubmit: document.getElementById('customerSubmit'),
+        customerClear: document.getElementById('customerClear'),
+        customerList: document.getElementById('customerList'),
+        customerType: document.getElementById('customerType'),
+        todoPriority: document.getElementById('todoPriority'),
+        todoCategory: document.getElementById('todoCategory'),
+        todoDue: document.getElementById('todoDue'),
+        todoNote: document.getElementById('todoNote'),
+        todoTitle: document.getElementById('todoTitle'),
+        scheduleTitle: document.getElementById('scheduleTitle'),
+        scheduleDate: document.getElementById('scheduleDate'),
+        scheduleTime: document.getElementById('scheduleTime'),
+        scheduleKind: document.getElementById('scheduleKind'),
+        scheduleStatus: document.getElementById('scheduleStatus'),
+        scheduleNote: document.getElementById('scheduleNote'),
+        shipmentTitle: document.getElementById('shipmentTitle'),
+        shipmentCourier: document.getElementById('shipmentCourier'),
+        shipmentTracking: document.getElementById('shipmentTracking'),
+        shipmentReceiver: document.getElementById('shipmentReceiver'),
+        shipmentShipDate: document.getElementById('shipmentShipDate'),
+        shipmentEta: document.getElementById('shipmentEta'),
+        shipmentStatus: document.getElementById('shipmentStatus'),
+        shipmentNote: document.getElementById('shipmentNote'),
+        timeDate: document.getElementById('timeDate'),
+        timeProject: document.getElementById('timeProject'),
+        timeTask: document.getElementById('timeTask'),
+        timeHours: document.getElementById('timeHours'),
+        timeBillable: document.getElementById('timeBillable'),
+        timeNote: document.getElementById('timeNote'),
+        typeName: document.getElementById('typeName'),
+        typeColor: document.getElementById('typeColor'),
+        typeNote: document.getElementById('typeNote'),
+        customerName: document.getElementById('customerName'),
+        customerIndustry: document.getElementById('customerIndustry'),
+        customerContact: document.getElementById('customerContact'),
+        customerStatus: document.getElementById('customerStatus'),
+        customerNote: document.getElementById('customerNote'),
+        toast: document.getElementById('toast')
+      };
+
+      const defaults = {
+        version: 1,
+        ui: { activeTab: 'overview', search: '' },
+        meta: { lastSavedAt: null },
+        settings: { myName: '我方工作室' },
+        customerTypes: [],
+        customers: [],
+        todos: [],
+        contracts: [],
+        reviews: [],
+        schedules: [],
+        shipments: [],
+        timeLogs: []
+      };
+
+      function uid(prefix = 'id') {
+        return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+      }
+
+      function todayISO(date = new Date()) {
+        const d = new Date(date);
+        const offset = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - offset).toISOString().slice(0, 10);
+      }
+
+      function dateTimeISO(date = new Date()) {
+        return new Date(date).toISOString().slice(0, 16);
+      }
+
+      function parseDate(value) {
+        if (!value) return null;
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? null : d;
+      }
+
+      function addDaysISO(iso, delta) {
+        const d = parseDate(iso || todayISO());
+        if (!d) return todayISO();
+        d.setDate(d.getDate() + delta);
+        return todayISO(d);
+      }
+
+      function startOfWeekISO(iso) {
+        const d = parseDate(iso || todayISO());
+        if (!d) return todayISO();
+        const day = d.getDay() || 7;
+        d.setDate(d.getDate() - day + 1);
+        return todayISO(d);
+      }
+
+      function addDays(date, delta) {
+        const d = new Date(date);
+        d.setDate(d.getDate() + delta);
+        return d;
+      }
+
+      function fmtDate(iso) {
+        if (!iso) return '未填';
+        const d = parseDate(iso);
+        if (!d) return iso;
+        return new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', weekday: 'short' }).format(d);
+      }
+
+      function fmtDateTime(iso) {
+        if (!iso) return '未填';
+        const d = parseDate(iso);
+        if (!d) return iso;
+        return new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(d);
+      }
+
+      function fmtMoney(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n) || n === 0) return '未填金额';
+        return currency.format(n);
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+      }
+
+      function plain(value) {
+        return String(value ?? '').trim();
+      }
+
+      function toast(message) {
+        els.toast.textContent = message;
+        els.toast.classList.add('show');
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => els.toast.classList.remove('show'), 1800);
+      }
+
+      function clone(obj) {
+        return JSON.parse(JSON.stringify(obj));
+      }
+
+      function seedData() {
+        const typeA = { id: uid('type'), name: '重点客户', color: '#2563eb', note: '优先跟进' };
+        const typeB = { id: uid('type'), name: '老客户', color: '#16a34a', note: '持续合作' };
+        const typeC = { id: uid('type'), name: '渠道客户', color: '#f59e0b', note: '转介绍' };
+        const customerA = { id: uid('cus'), name: '星河传媒', typeId: typeA.id, industry: '品牌传播', contact: '林先生 / 13800000000', status: '活跃', note: '喜欢先看草稿再定版', createdAt: dateTimeISO(addDays(new Date(), -8)), updatedAt: dateTimeISO(addDays(new Date(), -2)) };
+        const customerB = { id: uid('cus'), name: '云栖科技', typeId: typeB.id, industry: 'ToB SaaS', contact: '周女士 / 13900000000', status: '跟进中', note: '关注交付周期', createdAt: dateTimeISO(addDays(new Date(), -12)), updatedAt: dateTimeISO(addDays(new Date(), -1)) };
+        const customerC = { id: uid('cus'), name: '白墨工作室', typeId: typeC.id, industry: '设计', contact: '阿杰 / 13700000000', status: '暂停', note: '曾做过样片合作', createdAt: dateTimeISO(addDays(new Date(), -20)), updatedAt: dateTimeISO(addDays(new Date(), -10)) };
+        return {
+          ...clone(defaults),
+          customerTypes: [typeA, typeB, typeC],
+          customers: [customerA, customerB, customerC],
+          todos: [
+            { id: uid('todo'), title: '确认今天合同版式', dueDate: todayISO(), priority: '高', category: '合同', customerId: customerA.id, note: '先对齐页数和附件', done: false, createdAt: dateTimeISO(addDays(new Date(), -1)), updatedAt: dateTimeISO(addDays(new Date(), -1)) },
+            { id: uid('todo'), title: '整理下周排期', dueDate: addDaysISO(todayISO(), 2), priority: '中', category: '排期', customerId: customerB.id, note: '把拍摄和交付都放进去', done: false, createdAt: dateTimeISO(addDays(new Date(), -2)), updatedAt: dateTimeISO(addDays(new Date(), -2)) }
+          ],
+          contracts: [
+            { id: uid('con'), title: '星河传媒短视频制作合同', myName: '我方工作室', customerId: customerA.id, counterpartyName: customerA.name, type: '制作合同', amount: 16800, startDate: todayISO(), endDate: addDaysISO(todayISO(), 30), signDate: todayISO(), autoRenew: 'no', payment: '30% 预付款，交付后 7 日内付尾款', delivery: '交付 15 条成片、封面、源文件与修改说明', note: '含 2 次免费修改', draftText: '', createdAt: dateTimeISO(addDays(new Date(), -1)), updatedAt: dateTimeISO(addDays(new Date(), -1)) }
+          ],
+          reviews: [],
+          schedules: [
+            { id: uid('sch'), title: '客户确认脚本', date: todayISO(), time: '14:00', kind: '沟通', status: '待开始', customerId: customerA.id, contractId: '', note: '准备 2 个版本', createdAt: dateTimeISO(addDays(new Date(), -1)), updatedAt: dateTimeISO(addDays(new Date(), -1)) },
+            { id: uid('sch'), title: '拍摄执行', date: addDaysISO(todayISO(), 2), time: '10:00', kind: '拍摄', status: '待开始', customerId: customerB.id, contractId: '', note: '带好灯和电池', createdAt: dateTimeISO(addDays(new Date(), -2)), updatedAt: dateTimeISO(addDays(new Date(), -2)) }
+          ],
+          shipments: [
+            { id: uid('ship'), title: '样片 U 盘', courier: '顺丰', tracking: 'SF000000000', customerId: customerA.id, receiver: '林先生', shipDate: todayISO(), eta: addDaysISO(todayISO(), 1), status: '运输中', note: '签收后回个消息', createdAt: dateTimeISO(addDays(new Date(), -1)), updatedAt: dateTimeISO(addDays(new Date(), -1)) }
+          ],
+          timeLogs: [
+            { id: uid('time'), date: todayISO(), customerId: customerA.id, project: '短视频制作', task: '合同审核', hours: 1.5, billable: 'yes', note: '核对付款和交付条款', createdAt: dateTimeISO(addDays(new Date(), -1)), updatedAt: dateTimeISO(addDays(new Date(), -1)) }
+          ]
+        };
+      }
+
+      function normalizeState(raw) {
+        const base = clone(defaults);
+        const s = raw && typeof raw === 'object' ? raw : {};
+        const merged = {
+          ...base,
+          ...s,
+          ui: { ...base.ui, ...(s.ui || {}) },
+          meta: { ...base.meta, ...(s.meta || {}) },
+          settings: { ...base.settings, ...(s.settings || {}) },
+          customerTypes: Array.isArray(s.customerTypes) ? s.customerTypes : [],
+          customers: Array.isArray(s.customers) ? s.customers : [],
+          todos: Array.isArray(s.todos) ? s.todos : [],
+          contracts: Array.isArray(s.contracts) ? s.contracts : [],
+          reviews: Array.isArray(s.reviews) ? s.reviews : [],
+          schedules: Array.isArray(s.schedules) ? s.schedules : [],
+          shipments: Array.isArray(s.shipments) ? s.shipments : [],
+          timeLogs: Array.isArray(s.timeLogs) ? s.timeLogs : []
+        };
+        if (!merged.customerTypes.length && !merged.customers.length && !merged.todos.length && !merged.contracts.length && !merged.reviews.length && !merged.schedules.length && !merged.shipments.length && !merged.timeLogs.length) {
+          return seedData();
+        }
+        return merged;
+      }
+
+      let state = (() => {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          return normalizeState(raw ? JSON.parse(raw) : null);
+        } catch {
+          return seedData();
+        }
+      })();
+
+      let syncKey = localStorage.getItem(SYNC_KEY_STORAGE) || '';
+      let cloudSyncTimer = null;
+      let isLoadingCloud = false;
+
+      function setCloudStatus(message) {
+        els.cloudStatus.textContent = message;
+        els.overviewSaved.textContent = message;
+        const connected = Boolean(syncKey);
+        els.cloudUser.hidden = !connected;
+        els.cloudUser.textContent = connected ? '本机已保存同步口令' : '';
+        els.syncKeyInput.hidden = connected;
+        els.syncConnectBtn.hidden = connected;
+        els.syncGenerateBtn.hidden = connected;
+        els.cloudSyncBtn.hidden = !connected;
+        els.cloudLogoutBtn.hidden = !connected;
+      }
+
+      function persistSyncKey(key) {
+        syncKey = key.trim();
+        if (syncKey) localStorage.setItem(SYNC_KEY_STORAGE, syncKey);
+        else localStorage.removeItem(SYNC_KEY_STORAGE);
+      }
+
+      async function hashSyncKey(value) {
+        if (!crypto.subtle) throw new Error('当前页面不是 HTTPS，无法启用云端同步');
+        const bytes = new TextEncoder().encode(value);
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+      }
+
+      async function cloudRequest(functionName, body) {
+        const headers = {
+          apikey: SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        };
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${functionName}`, {
+          method: 'POST', headers, body: JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error((await response.text()) || '云端请求失败');
+        return response.status === 204 ? null : response.json();
+      }
+
+      function queueCloudSync() {
+        if (!syncKey || isLoadingCloud) return;
+        clearTimeout(cloudSyncTimer);
+        cloudSyncTimer = setTimeout(() => syncToCloud(false), 700);
+      }
+
+      async function syncToCloud(showToast = true) {
+        try {
+          if (!syncKey) throw new Error('请先输入同步口令');
+          state.meta.lastSavedAt = new Date().toISOString();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          await cloudRequest('sofia_save_workspace', { p_key_hash: await hashSyncKey(syncKey), p_data: state });
+          setCloudStatus('已同步到云端');
+          if (showToast) toast('云端同步完成');
+        } catch (error) {
+          console.error(error);
+          setCloudStatus('云端同步失败，本地已保存');
+          if (showToast) toast(error.message || '云端同步失败，请检查 SQL');
+        }
+      }
+
+      async function loadCloudWorkspace() {
+        if (!syncKey) return;
+        isLoadingCloud = true;
+        try {
+          setCloudStatus('正在读取云端数据...');
+          const rows = await cloudRequest('sofia_get_workspace', { p_key_hash: await hashSyncKey(syncKey) });
+          const row = rows && rows[0];
+          if (row && row.data) {
+            const cloudData = normalizeState(row.data);
+            const cloudTime = Date.parse(row.updated_at || cloudData.meta.lastSavedAt || 0) || 0;
+            const localTime = Date.parse(state.meta.lastSavedAt || 0) || 0;
+            if (cloudTime >= localTime || confirm('云端已有 Sofia 数据。确定读取云端数据？取消将用本机数据覆盖云端。')) {
+              state = cloudData;
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+              els.globalSearch.value = state.ui.search || '';
+              render();
+              toast('已读取云端数据');
+            } else {
+              await syncToCloud(false);
+            }
+          } else {
+            await syncToCloud(false);
+          }
+          setCloudStatus('已同步到云端');
+        } catch (error) {
+          console.error(error);
+          setCloudStatus('无法读取云端，本地继续可用');
+          toast('云端连接失败，请先执行同步口令 SQL');
+        } finally {
+          isLoadingCloud = false;
+        }
+      }
+
+      function randomSyncKey() {
+        const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        const values = new Uint32Array(16);
+        crypto.getRandomValues(values);
+        return Array.from(values, value => alphabet[value % alphabet.length]).join('');
+      }
+
+      async function connectSyncKey() {
+        const key = els.syncKeyInput.value.trim();
+        if (key.length < 8) { toast('同步口令至少需要 8 位'); return; }
+        try {
+          els.syncConnectBtn.disabled = true;
+          persistSyncKey(key);
+          setCloudStatus('正在连接云端...');
+          await loadCloudWorkspace();
+          toast('同步口令已连接');
+        } catch (error) {
+          console.error(error);
+          persistSyncKey('');
+          setCloudStatus('连接失败，本地仍可使用');
+          toast(error.message || '同步口令连接失败');
+        } finally {
+          els.syncConnectBtn.disabled = false;
+        }
+      }
+
+      function generateSyncKey() {
+        const key = randomSyncKey();
+        els.syncKeyInput.value = key;
+        els.syncKeyInput.type = 'text';
+        toast('已生成口令，请在手机上输入同一口令');
+      }
+
+      function saveState() {
+        state.meta.lastSavedAt = new Date().toISOString();
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          els.saveState.textContent = `已保存 · ${new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date())}`;
+          if (!syncKey) els.overviewSaved.textContent = '已同步到本地';
+          queueCloudSync();
+        } catch (err) {
+          els.saveState.textContent = '本地保存失败';
+          toast('本地存储写入失败');
+        }
+      }
+
+      function setFieldsetDefaults() {
+        const today = todayISO();
+        els.todoDue.value = today;
+        els.contractStart.value = today;
+        els.contractSign.value = today;
+        els.scheduleDate.value = today;
+        els.shipmentShipDate.value = today;
+        els.shipmentEta.value = addDaysISO(today, 1);
+        els.timeDate.value = today;
+      }
+
+      function customerById(id) {
+        return state.customers.find(item => item.id === id) || null;
+      }
+
+      function customerTypeById(id) {
+        return state.customerTypes.find(item => item.id === id) || null;
+      }
+
+      function contractById(id) {
+        return state.contracts.find(item => item.id === id) || null;
+      }
+
+      function typeColor(id) {
+        return customerTypeById(id)?.color || '#64748b';
+      }
+
+      function customerLabel(id) {
+        const customer = customerById(id);
+        if (!customer) return '未选客户';
+        return customer.name;
+      }
+
+      function contractLabel(id) {
+        const item = contractById(id);
+        return item ? item.title : '未选合同';
+      }
+
+      function listSearchHit(text) {
+        const q = plain(state.ui.search).toLowerCase();
+        if (!q) return true;
+        return String(text || '').toLowerCase().includes(q);
+      }
+
+      function recordSearchMatch(parts) {
+        const q = plain(state.ui.search).toLowerCase();
+        if (!q) return true;
+        return parts.some(part => String(part || '').toLowerCase().includes(q));
+      }
+
+      function statusBadge(text) {
+        const map = {
+          高: 'b-red',
+          中: 'b-amber',
+          低: 'b-green',
+          已完成: 'b-green',
+          未完成: 'b-gray',
+          open: 'b-gray',
+          done: 'b-green',
+          活跃: 'b-green',
+          跟进中: 'b-amber',
+          暂停: 'b-gray',
+          待开始: 'b-gray',
+          进行中: 'b-blue',
+          已改期: 'b-amber',
+          待寄出: 'b-gray',
+          已揽收: 'b-blue',
+          运输中: 'b-teal',
+          派送中: 'b-amber',
+          已签收: 'b-green'
+        };
+        return map[text] || 'b-gray';
+      }
+
+      function reviewScoreClass(score) {
+        if (score >= 85) return 'b-green';
+        if (score >= 65) return 'b-amber';
+        return 'b-red';
+      }
+
+      function populateSelect(el, options, selectedValue, placeholder = '请选择') {
+        if (!el) return;
+        const current = selectedValue ?? el.value;
+        el.innerHTML = `<option value="">${placeholder}</option>` + options.map(opt => {
+          const label = escapeHtml(opt.label);
+          const sel = String(opt.value) === String(current) ? ' selected' : '';
+          return `<option value="${escapeHtml(opt.value)}"${sel}>${label}</option>`;
+        }).join('');
+        if (current && options.some(opt => String(opt.value) === String(current))) {
+          el.value = current;
+        }
+      }
+
+      function populateDropdowns() {
+        const customerOpts = state.customers.map(item => ({ value: item.id, label: `${item.name}${customerTypeById(item.typeId) ? ` · ${customerTypeById(item.typeId).name}` : ''}` }));
+        const contractOpts = state.contracts.map(item => ({ value: item.id, label: item.title }));
+        const typeOpts = state.customerTypes.map(item => ({ value: item.id, label: item.name }));
+
+        populateSelect(els.todoCustomer, customerOpts, els.todoCustomer.value, '不关联客户');
+        populateSelect(els.contractCustomer, customerOpts, els.contractCustomer.value, '请选择客户');
+        populateSelect(els.reviewSource, contractOpts, els.reviewSource.value, '选择合同草稿');
+        populateSelect(els.scheduleCustomer, customerOpts, els.scheduleCustomer.value, '不关联客户');
+        populateSelect(els.scheduleContract, contractOpts, els.scheduleContract.value, '不关联合同');
+        populateSelect(els.shipmentCustomer, customerOpts, els.shipmentCustomer.value, '不关联客户');
+        populateSelect(els.timeCustomer, customerOpts, els.timeCustomer.value, '不关联客户');
+        populateSelect(els.customerType, typeOpts, els.customerType.value, '选择类型');
+      }
+
+      function navCounts() {
+        const q = state.ui.search.toLowerCase();
+        const todoCount = state.todos.filter(item => !item.done).length;
+        const contractCount = state.contracts.filter(item => recordSearchMatch([item.title, customerLabel(item.customerId), item.type, item.counterpartyName, item.payment, item.delivery, item.note])).length;
+        const reviewCount = state.reviews.length;
+        const scheduleCount = state.schedules.filter(item => recordSearchMatch([item.title, customerLabel(item.customerId), item.kind, item.note])).length;
+        const shipmentCount = state.shipments.filter(item => item.status !== '已签收').length;
+        const hoursCount = state.timeLogs.length;
+        const customerCount = state.customers.filter(item => recordSearchMatch([item.name, item.industry, item.contact, item.status, customerTypeById(item.typeId)?.name, item.note])).length;
+        document.getElementById('count-overview').textContent = '1';
+        document.getElementById('count-todos').textContent = todoCount;
+        document.getElementById('count-contracts').textContent = contractCount;
+        document.getElementById('count-review').textContent = reviewCount;
+        document.getElementById('count-schedule').textContent = scheduleCount;
+        document.getElementById('count-shipments').textContent = shipmentCount;
+        document.getElementById('count-hours').textContent = hoursCount;
+        document.getElementById('count-customers').textContent = customerCount;
+      }
+
+      function setActiveTab(tab) {
+        state.ui.activeTab = tab;
+        saveState();
+        render();
+        const panel = document.querySelector(`.panel[data-tab="${tab}"]`);
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function renderTabState() {
+        document.querySelectorAll('.nav-item').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.tab === state.ui.activeTab);
+        });
+        document.querySelectorAll('.panel').forEach(panel => {
+          panel.classList.toggle('active', panel.dataset.tab === state.ui.activeTab);
+        });
+        els.pageTitle.textContent = TAB_LABELS[state.ui.activeTab] || '总览';
+      }
+
+      function renderOverview() {
+        const today = todayISO();
+        const in7Days = addDaysISO(today, 7);
+        const pendingTodos = state.todos.filter(item => !item.done);
+        const dueSoon = pendingTodos.filter(item => item.dueDate && item.dueDate >= today && item.dueDate <= in7Days);
+        const activeContracts = state.contracts.length;
+        const pendingShipments = state.shipments.filter(item => item.status !== '已签收').length;
+        const monthKey = today.slice(0, 7);
+        const monthHours = state.timeLogs.filter(item => item.date && item.date.slice(0, 7) === monthKey).reduce((sum, item) => sum + (Number(item.hours) || 0), 0);
+        const upcomingSchedules = state.schedules.filter(item => item.date && item.date >= today && item.date <= in7Days);
+        const highReviews = state.reviews.filter(item => Number(item.score) < 70).length;
+        const customerCount = state.customers.length;
+
+        const stats = [
+          { label: '未完成待办', value: pendingTodos.length, hint: dueSoon.length ? `其中 ${dueSoon.length} 条本周内` : '没有本周截止项' },
+          { label: '合同草稿', value: activeContracts, hint: state.contracts[0] ? `最近：${state.contracts[0].title}` : '还没有合同草稿' },
+          { label: '待处理快递', value: pendingShipments, hint: pendingShipments ? '有快递还没签收' : '全部快递已签收' },
+          { label: '本月工时', value: monthHours.toFixed(1), hint: '小时' },
+          { label: '本周排期', value: upcomingSchedules.length, hint: upcomingSchedules.length ? '要提前盯好节奏' : '本周暂无排期' },
+          { label: '低分审核', value: highReviews, hint: '分数低于 70 的记录' }
+        ];
+        els.overviewStats.innerHTML = stats.map(item => `
+          <div class="stat">
+            <div class="label">${escapeHtml(item.label)}</div>
+            <div class="value">${escapeHtml(item.value)}</div>
+            <div class="hint">${escapeHtml(item.hint)}</div>
+          </div>
+        `).join('');
+
+        const upcoming = []
+          .concat(dueSoon.slice(0, 4).map(item => ({
+            title: item.title,
+            meta: `${item.category} · ${item.priority}优先级`,
+            badge: item.done ? '已完成' : (item.dueDate ? fmtDate(item.dueDate) : '无截止')
+          })))
+          .concat(upcomingSchedules.slice(0, 4).map(item => ({
+            title: item.title,
+            meta: `${fmtDate(item.date)} ${item.time || ''} · ${customerLabel(item.customerId)} · ${item.kind}`,
+            badge: item.status
+          })))
+          .concat(state.shipments.filter(item => item.status !== '已签收').slice(0, 3).map(item => ({
+            title: item.title,
+            meta: `${item.courier || '快递'} · ${item.tracking || '无运单号'} · ${customerLabel(item.customerId)}`,
+            badge: item.status
+          })));
+
+        els.upcomingList.innerHTML = upcoming.length ? upcoming.map(item => `
+          <div class="item">
+            <div class="item-main">
+              <div class="item-title">${escapeHtml(item.title)}</div>
+              <div class="item-meta">
+                <span>${escapeHtml(item.meta)}</span>
+              </div>
+            </div>
+            <span class="badge ${statusBadge(item.badge)}">${escapeHtml(item.badge)}</span>
+          </div>
+        `).join('') : '<div class="empty">没有待处理事项，今天可以先把最重要的一件事推进。</div>';
+
+        const activity = collectRecentActivity().slice(0, 8);
+        els.activityList.innerHTML = activity.length ? activity.map(item => `
+          <div class="item">
+            <div class="item-main">
+              <div class="item-title">${escapeHtml(item.title)}</div>
+              <div class="item-meta">${escapeHtml(item.meta)}</div>
+            </div>
+            <div class="item-meta" style="white-space:nowrap">${escapeHtml(item.time)}</div>
+          </div>
+        `).join('') : '<div class="empty">还没有活动记录。</div>';
+      }
+
+      function collectRecentActivity() {
+        const combined = [];
+        state.todos.forEach(item => combined.push({
+          title: `待办 · ${item.done ? '已完成' : '未完成'} · ${item.title}`,
+          meta: `${item.category} · ${item.priority} · ${customerLabel(item.customerId)}`,
+          time: item.updatedAt || item.createdAt || '',
+          sort: item.updatedAt || item.createdAt || ''
+        }));
+        state.contracts.forEach(item => combined.push({
+          title: `合同 · ${item.title}`,
+          meta: `${item.type} · ${fmtMoney(item.amount)} · ${customerLabel(item.customerId)}`,
+          time: item.updatedAt || item.createdAt || '',
+          sort: item.updatedAt || item.createdAt || ''
+        }));
+        state.reviews.forEach(item => combined.push({
+          title: `审核 · ${item.title || '未命名审核'}`,
+          meta: `评分 ${item.score} · ${item.issues.length} 个问题`,
+          time: item.createdAt || '',
+          sort: item.createdAt || ''
+        }));
+        state.schedules.forEach(item => combined.push({
+          title: `排期 · ${item.title}`,
+          meta: `${fmtDate(item.date)} ${item.time || ''} · ${item.kind} · ${customerLabel(item.customerId)}`,
+          time: item.updatedAt || item.createdAt || '',
+          sort: item.updatedAt || item.createdAt || ''
+        }));
+        state.shipments.forEach(item => combined.push({
+          title: `快递 · ${item.title}`,
+          meta: `${item.courier || ''} · ${item.tracking || ''} · ${item.status}`,
+          time: item.updatedAt || item.createdAt || '',
+          sort: item.updatedAt || item.createdAt || ''
+        }));
+        state.timeLogs.forEach(item => combined.push({
+          title: `工时 · ${item.project || '未命名项目'}`,
+          meta: `${item.date} · ${item.hours} 小时 · ${customerLabel(item.customerId)}`,
+          time: item.updatedAt || item.createdAt || '',
+          sort: item.updatedAt || item.createdAt || ''
+        }));
+        state.customers.forEach(item => combined.push({
+          title: `客户 · ${item.name}`,
+          meta: `${customerTypeById(item.typeId)?.name || '未分类'} · ${item.status}`,
+          time: item.updatedAt || item.createdAt || '',
+          sort: item.updatedAt || item.createdAt || ''
+        }));
+        return combined.sort((a, b) => String(b.sort || '').localeCompare(String(a.sort || '')));
+      }
+
+      function renderTodos() {
+        const filter = els.todoStatusFilter.value || 'all';
+        const items = state.todos.filter(item => {
+          if (filter === 'open' && item.done) return false;
+          if (filter === 'done' && !item.done) return false;
+          return recordSearchMatch([item.title, item.category, item.priority, item.note, customerLabel(item.customerId), item.dueDate]);
+        }).sort((a, b) => String(a.done) - String(b.done) || String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+
+        els.todoList.innerHTML = items.length ? items.map(item => {
+          const customer = customerById(item.customerId);
+          const type = customer ? customerTypeById(customer.typeId) : null;
+          return `
+            <div class="item">
+              <div class="item-main">
+                <div class="item-title">${escapeHtml(item.title)}</div>
+                <div class="item-meta">
+                  <span class="badge ${statusBadge(item.priority)}">${escapeHtml(item.priority)}优先</span>
+                  <span class="badge b-gray">${escapeHtml(item.category)}</span>
+                  <span class="badge ${item.done ? 'b-green' : 'b-blue'}">${item.done ? '已完成' : '未完成'}</span>
+                  ${item.dueDate ? `<span>截止 ${escapeHtml(fmtDate(item.dueDate))}</span>` : ''}
+                  ${customer ? `<span>客户 ${escapeHtml(customer.name)}</span>` : ''}
+                  ${type ? `<span class="type-chip"><span class="swatch" style="background:${escapeHtml(type.color)}"></span>${escapeHtml(type.name)}</span>` : ''}
+                  ${item.note ? `<span>${escapeHtml(item.note)}</span>` : ''}
+                </div>
+              </div>
+              <div class="item-actions">
+                <button class="small ghost" data-act="toggle-todo" data-id="${escapeHtml(item.id)}">${item.done ? '恢复' : '完成'}</button>
+                <button class="small secondary" data-act="edit-todo" data-id="${escapeHtml(item.id)}">编辑</button>
+                <button class="small danger" data-act="delete-todo" data-id="${escapeHtml(item.id)}">删除</button>
+              </div>
+            </div>
+          `;
+        }).join('') : '<div class="empty">当前没有待办。先加一条最要紧的事。</div>';
+      }
+
+      function buildContractText(data) {
+        const customer = customerById(data.customerId);
+        const counterparty = plain(data.counterpartyName) || customer?.name || '（待填写）';
+        const myName = plain(data.myName) || state.settings.myName || '我方';
+        const type = plain(data.type) || '制作合同';
+        const amount = fmtMoney(data.amount);
+        const startDate = data.startDate ? fmtDate(data.startDate) : '未填';
+        const endDate = data.endDate ? fmtDate(data.endDate) : '未填';
+        const signDate = data.signDate ? fmtDate(data.signDate) : '未填';
+        const autoRenewText = data.autoRenew === 'yes' ? '本合同为自动续约，除非任一方提前书面通知终止。' : '本合同不自动续约，期满后按双方确认处理。';
+        return [
+          `合同名称：${plain(data.title) || '未命名合同'}`,
+          `合同类型：${type}`,
+          `我方：${myName}`,
+          `对方：${counterparty}`,
+          `签署日期：${signDate}`,
+          `开始日期：${startDate}`,
+          `结束日期：${endDate}`,
+          `金额：${amount}`,
+          '',
+          '1. 合作内容',
+          `双方就 ${plain(data.title) || '相关项目'} 展开合作。`,
+          '',
+          '2. 付款节点',
+          plain(data.payment) || '（待填写付款节点）',
+          '',
+          '3. 交付与验收',
+          plain(data.delivery) || '（待填写交付与验收）',
+          '',
+          '4. 其他',
+          plain(data.note) || '（可补充保密、发票、违约、附件等说明）',
+          '',
+          '5. 续约/终止',
+          autoRenewText,
+          '',
+          '（以上为草稿模板，提交前请再检查主体、金额、期限、验收和违约条款。）'
+        ].join('\n');
+      }
+
+      function readContractForm() {
+        return {
+          title: els.contractTitle.value.trim(),
+          myName: els.contractMyName.value.trim(),
+          customerId: els.contractCustomer.value,
+          counterpartyName: els.contractCustomerName.value.trim(),
+          type: els.contractType.value,
+          amount: els.contractAmount.value,
+          startDate: els.contractStart.value,
+          endDate: els.contractEnd.value,
+          signDate: els.contractSign.value,
+          autoRenew: els.contractAutoRenew.value,
+          payment: els.contractPayment.value.trim(),
+          delivery: els.contractDeliver.value.trim(),
+          note: els.contractNote.value.trim()
+        };
+      }
+
+      function syncContractPreview() {
+        const data = readContractForm();
+        const text = buildContractText(data);
+        els.contractPreview.textContent = text;
+        els.contractDraftTag.textContent = els.contractForm.dataset.editId ? '编辑中' : '草稿未保存';
+        return text;
+      }
+
+      function renderContracts() {
+        const items = state.contracts.filter(item => recordSearchMatch([item.title, item.type, item.counterpartyName, customerLabel(item.customerId), item.payment, item.delivery, item.note]))
+          .sort((a, b) => String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || '')));
+        els.contractList.innerHTML = items.length ? items.map(item => {
+          const customer = customerById(item.customerId);
+          return `
+            <div class="item">
+              <div class="item-main">
+                <div class="item-title">${escapeHtml(item.title)}</div>
+                <div class="item-meta">
+                  <span class="badge b-violet">${escapeHtml(item.type)}</span>
+                  <span>${escapeHtml(customer ? customer.name : item.counterpartyName || '未选客户')}</span>
+                  <span>${escapeHtml(fmtMoney(item.amount))}</span>
+                  <span>${item.autoRenew === 'yes' ? '自动续约' : '不自动续约'}</span>
+                  <span>${item.startDate ? `起始 ${escapeHtml(item.startDate)}` : ''}</span>
+                  <span>${item.endDate ? `结束 ${escapeHtml(item.endDate)}` : ''}</span>
+                </div>
+              </div>
+              <div class="item-actions">
+                <button class="small secondary" data-act="edit-contract" data-id="${escapeHtml(item.id)}">编辑</button>
+                <button class="small ghost" data-act="send-review" data-id="${escapeHtml(item.id)}">送审</button>
+                <button class="small ghost" data-act="copy-contract" data-id="${escapeHtml(item.id)}">复制</button>
+                <button class="small danger" data-act="delete-contract" data-id="${escapeHtml(item.id)}">删除</button>
+              </div>
+            </div>
+          `;
+        }).join('') : '<div class="empty">还没有合同草稿。先填一份给自己打个底。</div>';
+        populateSelect(els.reviewSource, state.contracts.map(item => ({ value: item.id, label: item.title })), els.reviewSource.value, '选择合同草稿');
+      }
+
+      function analyzeContract(text) {
+        const issues = [];
+        const add = (level, title, desc) => issues.push({ level, title, desc });
+        const raw = plain(text);
+        const len = raw.length;
+        if (len < 120) add('high', '文本太短', '当前文本更像提纲，至少补齐主体、金额、交付和终止条款。');
+        if (!/(甲方|委托方|采购方|买方)/.test(raw) || !/(乙方|服务方|供应方|卖方)/.test(raw)) add('high', '主体信息不完整', '补齐双方名称、联系人和签约主体。');
+        if (!/(\d{4}年?\d{1,2}月?\d{1,2}日|\d{4}-\d{2}-\d{2})/.test(raw)) add('medium', '日期信息不足', '补签署日、生效日、交付日或验收日。');
+        if (!/(金额|价款|费用|人民币|付款)/.test(raw)) add('high', '付款条款偏弱', '写清总价、付款节点、发票和逾期责任。');
+        if (!/(交付|验收|成果|修改|服务范围|交货)/.test(raw)) add('medium', '交付与验收未写明', '补交付物、验收标准、修改次数和确认方式。');
+        if (!/(违约|责任|解除|终止|赔偿)/.test(raw)) add('medium', '违约与终止偏弱', '补违约责任、终止条件和争议处理。');
+        if (/(自动续费|自动续约)/.test(raw) && !/(提前|通知|取消|终止)/.test(raw)) add('high', '自动续约缺少退出机制', '写清提前通知期限和关闭自动续约的方式。');
+        if (/(保密)/.test(raw) && !/(期限|例外|删除|返还)/.test(raw)) add('low', '保密条款可更完整', '可加保密期限、例外情形和删除返还义务。');
+        const high = issues.filter(item => item.level === 'high').length;
+        const medium = issues.filter(item => item.level === 'medium').length;
+        const low = issues.filter(item => item.level === 'low').length;
+        const score = Math.max(0, Math.min(100, 100 - high * 18 - medium * 10 - low * 5 - (len < 200 ? 8 : 0)));
+        return { score, issues };
+      }
+
+      function renderReviewResult(result) {
+        els.reviewScore.textContent = result ? result.score : '--';
+        els.reviewScore.className = `score-pill ${result ? reviewScoreClass(result.score) : ''}`;
+        els.reviewResult.innerHTML = result ? `
+          <div class="review-score">
+            <span class="badge ${reviewScoreClass(result.score)}">综合评分 ${result.score}</span>
+            <span class="badge b-gray">${result.issues.length} 个提醒</span>
+          </div>
+          <div class="issues">
+            ${result.issues.length ? result.issues.map(item => `
+              <div class="issue">
+                <div class="top">
+                  <div class="title">${escapeHtml(item.title)}</div>
+                  <span class="badge ${item.level === 'high' ? 'b-red' : item.level === 'medium' ? 'b-amber' : 'b-green'}">${item.level === 'high' ? '高风险' : item.level === 'medium' ? '中风险' : '提示'}</span>
+                </div>
+                <div class="desc">${escapeHtml(item.desc)}</div>
+              </div>
+            `).join('') : '<div class="empty">没有发现明显问题，但仍建议人工再过一遍。</div>'}
+          </div>
+        ` : '<div class="empty">先分析一份合同，结果会显示在这里。</div>';
+      }
+
+      function renderReviewHistory() {
+        const items = state.reviews.filter(item => recordSearchMatch([item.title, item.text, String(item.score)]))
+          .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        els.reviewList.innerHTML = items.length ? items.map(item => `
+          <div class="item">
+            <div class="item-main">
+              <div class="item-title">${escapeHtml(item.title || '未命名审核')}</div>
+              <div class="item-meta">
+                <span class="badge ${reviewScoreClass(item.score)}">评分 ${item.score}</span>
+                <span>${escapeHtml(fmtDateTime(item.createdAt))}</span>
+                <span>${escapeHtml(item.source || '手动粘贴')}</span>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="small secondary" data-act="load-review" data-id="${escapeHtml(item.id)}">查看</button>
+              <button class="small danger" data-act="delete-review" data-id="${escapeHtml(item.id)}">删除</button>
+            </div>
+          </div>
+        `).join('') : '<div class="empty">还没有审核记录。</div>';
+      }
+
+      function renderSchedule() {
+        const items = state.schedules.filter(item => recordSearchMatch([item.title, item.kind, item.note, customerLabel(item.customerId), contractLabel(item.contractId), item.status, item.date, item.time]))
+          .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || String(a.time || '').localeCompare(String(b.time || '')));
+        const start = startOfWeekISO(todayISO());
+        const days = Array.from({ length: 7 }, (_, i) => addDaysISO(start, i));
+        els.scheduleWeek.innerHTML = days.map(day => {
+          const dayItems = items.filter(item => item.date === day);
+          const weekday = new Intl.DateTimeFormat('zh-CN', { weekday: 'short' }).format(parseDate(day));
+          const isToday = day === todayISO();
+          return `
+            <div class="day ${isToday ? 'today' : ''}">
+              <div class="day-head">
+                <span class="day-name">${escapeHtml(weekday)}</span>
+                <span>${escapeHtml(day.slice(5))}${isToday ? ' · 今天' : ''}</span>
+              </div>
+              <div class="mini-list">
+                ${dayItems.length ? dayItems.map(item => `
+                  <div class="mini-event">
+                    <div><strong>${escapeHtml(item.title)}</strong></div>
+                    <div class="mini-time">${escapeHtml(item.time || '无时间')} · ${escapeHtml(item.kind)} · ${escapeHtml(customerLabel(item.customerId))}</div>
+                  </div>
+                `).join('') : '<div class="empty" style="padding:10px">空档</div>'}
+              </div>
+            </div>
+          `;
+        }).join('');
+        els.scheduleList.innerHTML = items.length ? items.map(item => `
+          <div class="item">
+            <div class="item-main">
+              <div class="item-title">${escapeHtml(item.title)}</div>
+              <div class="item-meta">
+                <span class="badge ${statusBadge(item.status)}">${escapeHtml(item.status)}</span>
+                <span class="badge b-blue">${escapeHtml(item.kind)}</span>
+                <span>${escapeHtml(item.date)} ${escapeHtml(item.time || '')}</span>
+                <span>${escapeHtml(customerLabel(item.customerId))}</span>
+                <span>${escapeHtml(contractLabel(item.contractId))}</span>
+                <span>${escapeHtml(item.note || '')}</span>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="small secondary" data-act="edit-schedule" data-id="${escapeHtml(item.id)}">编辑</button>
+              <button class="small ghost" data-act="toggle-schedule" data-id="${escapeHtml(item.id)}">${item.status === '已完成' ? '重开' : '完成'}</button>
+              <button class="small danger" data-act="delete-schedule" data-id="${escapeHtml(item.id)}">删除</button>
+            </div>
+          </div>
+        `).join('') : '<div class="empty">还没有排期。先把本周最重要的一件事排上。</div>';
+      }
+
+      function renderShipments() {
+        const items = state.shipments.filter(item => recordSearchMatch([item.title, item.courier, item.tracking, item.receiver, item.note, item.status, customerLabel(item.customerId), item.shipDate, item.eta]))
+          .sort((a, b) => String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || '')));
+        els.shipmentList.innerHTML = items.length ? items.map(item => `
+          <div class="item">
+            <div class="item-main">
+              <div class="item-title">${escapeHtml(item.title)}</div>
+              <div class="item-meta">
+                <span class="badge ${statusBadge(item.status)}">${escapeHtml(item.status)}</span>
+                <span>${escapeHtml(item.courier || '未填快递公司')}</span>
+                <span>${escapeHtml(item.tracking || '未填运单号')}</span>
+                <span>${escapeHtml(customerLabel(item.customerId))}</span>
+                <span>${escapeHtml(item.receiver || '')}</span>
+                <span>${item.shipDate ? `寄出 ${escapeHtml(fmtDate(item.shipDate))}` : ''}</span>
+                <span>${item.eta ? `预计 ${escapeHtml(fmtDate(item.eta))}` : ''}</span>
+                <span>${escapeHtml(item.note || '')}</span>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="small secondary" data-act="edit-shipment" data-id="${escapeHtml(item.id)}">编辑</button>
+              <button class="small ghost" data-act="mark-shipped" data-id="${escapeHtml(item.id)}">签收</button>
+              <button class="small danger" data-act="delete-shipment" data-id="${escapeHtml(item.id)}">删除</button>
+            </div>
+          </div>
+        `).join('') : '<div class="empty">没有快递记录。</div>';
+      }
+
+      function renderHours() {
+        const today = todayISO();
+        const month = today.slice(0, 7);
+        const items = state.timeLogs.filter(item => recordSearchMatch([item.date, item.project, item.task, item.note, customerLabel(item.customerId)]))
+          .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+        const monthItems = items.filter(item => item.date && item.date.slice(0, 7) === month);
+        const todayItems = items.filter(item => item.date === today);
+        const totalHours = monthItems.reduce((sum, item) => sum + (Number(item.hours) || 0), 0);
+        const billableHours = monthItems.filter(item => item.billable === 'yes').reduce((sum, item) => sum + (Number(item.hours) || 0), 0);
+        const customerCount = new Set(monthItems.map(item => item.customerId).filter(Boolean)).size;
+        const avg = monthItems.length ? totalHours / monthItems.length : 0;
+        els.hourStats.innerHTML = [
+          { label: '本月总工时', value: totalHours.toFixed(1), hint: '小时' },
+          { label: '计费工时', value: billableHours.toFixed(1), hint: '小时' },
+          { label: '今日工时', value: todayItems.reduce((sum, item) => sum + (Number(item.hours) || 0), 0).toFixed(1), hint: '小时' },
+          { label: '涉及客户', value: customerCount, hint: '个' }
+        ].map(item => `
+          <div class="stat">
+            <div class="label">${escapeHtml(item.label)}</div>
+            <div class="value">${escapeHtml(item.value)}</div>
+            <div class="hint">${escapeHtml(item.hint)}</div>
+          </div>
+        `).join('');
+
+        const byCustomer = new Map();
+        monthItems.forEach(item => {
+          const key = customerLabel(item.customerId);
+          byCustomer.set(key, (byCustomer.get(key) || 0) + (Number(item.hours) || 0));
+        });
+        const top = [...byCustomer.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+        const max = top[0]?.[1] || 0;
+        els.hourBreakdown.innerHTML = top.length ? top.map(([name, value], index) => `
+          <div class="bar-row">
+            <div>${escapeHtml(name)}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${max ? Math.max(8, value / max * 100) : 0}%;background:${COLORS[index % COLORS.length]}"></div></div>
+            <div style="text-align:right">${value.toFixed(1)}h</div>
+          </div>
+        `).join('') : '<div class="empty">本月还没有工时。</div>';
+
+        els.timeList.innerHTML = items.length ? items.map(item => `
+          <div class="item">
+            <div class="item-main">
+              <div class="item-title">${escapeHtml(item.project || '未命名项目')} · ${escapeHtml(item.task || '未填事项')}</div>
+              <div class="item-meta">
+                <span class="badge b-blue">${escapeHtml(item.date || '')}</span>
+                <span class="badge ${item.billable === 'yes' ? 'b-green' : 'b-gray'}">${item.billable === 'yes' ? '计费' : '不计费'}</span>
+                <span>${escapeHtml(item.hours || '0')} 小时</span>
+                <span>${escapeHtml(customerLabel(item.customerId))}</span>
+                <span>${escapeHtml(item.note || '')}</span>
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="small secondary" data-act="edit-time" data-id="${escapeHtml(item.id)}">编辑</button>
+              <button class="small danger" data-act="delete-time" data-id="${escapeHtml(item.id)}">删除</button>
+            </div>
+          </div>
+        `).join('') : '<div class="empty">还没有工时记录。</div>';
+      }
+
+      function renderCustomerTypes() {
+        const types = state.customerTypes.filter(item => recordSearchMatch([item.name, item.note]))
+          .sort((a, b) => String(a.name).localeCompare(String(b.name), 'zh-CN'));
+        els.typeList.innerHTML = types.length ? types.map(item => {
+          const customerCount = state.customers.filter(customer => customer.typeId === item.id).length;
+          return `
+            <div class="item">
+              <div class="item-main">
+                <div class="item-title">${escapeHtml(item.name)}</div>
+                <div class="item-meta">
+                  <span class="type-chip"><span class="swatch" style="background:${escapeHtml(item.color)}"></span>${escapeHtml(item.color)}</span>
+                  <span>${escapeHtml(item.note || '没有备注')}</span>
+                  <span>客户 ${customerCount} 个</span>
+                </div>
+              </div>
+              <div class="item-actions">
+                <button class="small secondary" data-act="edit-type" data-id="${escapeHtml(item.id)}">编辑</button>
+                <button class="small danger" data-act="delete-type" data-id="${escapeHtml(item.id)}">删除</button>
+              </div>
+            </div>
+          `;
+        }).join('') : '<div class="empty">先添加几个客户类型吧。</div>';
+      }
+
+      function renderCustomers() {
+        const items = state.customers.filter(item => recordSearchMatch([item.name, item.industry, item.contact, item.status, item.note, customerTypeById(item.typeId)?.name]))
+          .sort((a, b) => String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || '')));
+        els.customerList.innerHTML = items.length ? items.map(item => {
+          const type = customerTypeById(item.typeId);
+          return `
+            <div class="item">
+              <div class="item-main">
+                <div class="item-title">${escapeHtml(item.name)}</div>
+                <div class="item-meta">
+                  ${type ? `<span class="type-chip"><span class="swatch" style="background:${escapeHtml(type.color)}"></span>${escapeHtml(type.name)}</span>` : '<span class="badge b-gray">未分类</span>'}
+                  <span class="badge ${statusBadge(item.status)}">${escapeHtml(item.status)}</span>
+                  <span>${escapeHtml(item.industry || '未填行业')}</span>
+                  <span>${escapeHtml(item.contact || '未填联系人')}</span>
+                  <span>${escapeHtml(item.note || '')}</span>
+                </div>
+              </div>
+              <div class="item-actions">
+                <button class="small secondary" data-act="edit-customer" data-id="${escapeHtml(item.id)}">编辑</button>
+                <button class="small danger" data-act="delete-customer" data-id="${escapeHtml(item.id)}">删除</button>
+              </div>
+            </div>
+          `;
+        }).join('') : '<div class="empty">还没有客户档案。</div>';
+      }
+
+      function renderReviewSourceOptions() {
+        populateSelect(els.reviewSource, state.contracts.map(item => ({ value: item.id, label: item.title })), els.reviewSource.value, '选择合同草稿');
+      }
+
+      function render() {
+        els.todayLabel.textContent = `今天 · ${new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())}`;
+        els.globalSearch.value = state.ui.search || '';
+        renderTabState();
+        populateDropdowns();
+        navCounts();
+        renderOverview();
+        renderTodos();
+        renderContracts();
+        renderReviewSourceOptions();
+        renderReviewHistory();
+        renderSchedule();
+        renderShipments();
+        renderHours();
+        renderCustomerTypes();
+        renderCustomers();
+        syncContractPreview();
+      }
+
+      function resetForm(form, editKey, onClear) {
+        form.reset();
+        form.removeAttribute('data-edit-id');
+        if (onClear) onClear();
+        setFieldsetDefaults();
+      }
+
+      function fillTodoForm(item) {
+        els.todoForm.dataset.editId = item.id;
+        els.todoTitle.value = item.title || '';
+        els.todoDue.value = item.dueDate || '';
+        els.todoPriority.value = item.priority || '中';
+        els.todoCategory.value = item.category || '其他';
+        els.todoCustomer.value = item.customerId || '';
+        els.todoNote.value = item.note || '';
+        els.todoSubmit.textContent = '更新待办';
+        setActiveTab('todos');
+      }
+
+      function fillContractForm(item) {
+        els.contractForm.dataset.editId = item.id;
+        els.contractTitle.value = item.title || '';
+        els.contractMyName.value = item.myName || state.settings.myName || '';
+        els.contractCustomer.value = item.customerId || '';
+        els.contractCustomerName.value = item.counterpartyName || '';
+        els.contractType.value = item.type || '制作合同';
+        els.contractAmount.value = item.amount ?? '';
+        els.contractStart.value = item.startDate || '';
+        els.contractEnd.value = item.endDate || '';
+        els.contractSign.value = item.signDate || '';
+        els.contractAutoRenew.value = item.autoRenew || 'no';
+        els.contractPayment.value = item.payment || '';
+        els.contractDeliver.value = item.delivery || '';
+        els.contractNote.value = item.note || '';
+        els.contractSubmit.textContent = '更新草稿';
+        syncContractPreview();
+        setActiveTab('contracts');
+      }
+
+      function fillReviewForm(text, title = '') {
+        els.reviewTitle.value = title || '';
+        els.reviewText.value = text || '';
+        setActiveTab('review');
+      }
+
+      function fillScheduleForm(item) {
+        els.scheduleForm.dataset.editId = item.id;
+        els.scheduleTitle.value = item.title || '';
+        els.scheduleDate.value = item.date || '';
+        els.scheduleTime.value = item.time || '';
+        els.scheduleKind.value = item.kind || '其他';
+        els.scheduleStatus.value = item.status || '待开始';
+        els.scheduleCustomer.value = item.customerId || '';
+        els.scheduleContract.value = item.contractId || '';
+        els.scheduleNote.value = item.note || '';
+        els.scheduleSubmit.textContent = '更新排期';
+        setActiveTab('schedule');
+      }
+
+      function fillShipmentForm(item) {
+        els.shipmentForm.dataset.editId = item.id;
+        els.shipmentTitle.value = item.title || '';
+        els.shipmentCourier.value = item.courier || '';
+        els.shipmentTracking.value = item.tracking || '';
+        els.shipmentCustomer.value = item.customerId || '';
+        els.shipmentReceiver.value = item.receiver || '';
+        els.shipmentShipDate.value = item.shipDate || '';
+        els.shipmentEta.value = item.eta || '';
+        els.shipmentStatus.value = item.status || '待寄出';
+        els.shipmentNote.value = item.note || '';
+        els.shipmentSubmit.textContent = '更新快递';
+        setActiveTab('shipments');
+      }
+
+      function fillTimeForm(item) {
+        els.timeForm.dataset.editId = item.id;
+        els.timeDate.value = item.date || '';
+        els.timeCustomer.value = item.customerId || '';
+        els.timeProject.value = item.project || '';
+        els.timeTask.value = item.task || '';
+        els.timeHours.value = item.hours ?? '';
+        els.timeBillable.value = item.billable || 'yes';
+        els.timeNote.value = item.note || '';
+        els.timeSubmit.textContent = '更新工时';
+        setActiveTab('hours');
+      }
+
+      function fillTypeForm(item) {
+        els.typeForm.dataset.editId = item.id;
+        els.typeName.value = item.name || '';
+        els.typeColor.value = item.color || '#2563eb';
+        els.typeNote.value = item.note || '';
+        els.typeSubmit.textContent = '更新类型';
+        setActiveTab('customers');
+      }
+
+      function fillCustomerForm(item) {
+        els.customerForm.dataset.editId = item.id;
+        els.customerName.value = item.name || '';
+        els.customerType.value = item.typeId || '';
+        els.customerIndustry.value = item.industry || '';
+        els.customerContact.value = item.contact || '';
+        els.customerStatus.value = item.status || '活跃';
+        els.customerNote.value = item.note || '';
+        els.customerSubmit.textContent = '更新客户';
+        setActiveTab('customers');
+      }
+
+      function clearFormState(form, submitBtn, defaultText) {
+        form.reset();
+        form.removeAttribute('data-edit-id');
+        submitBtn.textContent = defaultText;
+        setFieldsetDefaults();
+        syncContractPreview();
+      }
+
+      function currentEditId(form) {
+        return form.dataset.editId || '';
+      }
+
+      function upsertById(collection, item) {
+        const index = collection.findIndex(entry => entry.id === item.id);
+        if (index >= 0) collection[index] = item;
+        else collection.unshift(item);
+      }
+
+      function removeById(collection, id) {
+        const index = collection.findIndex(entry => entry.id === id);
+        if (index >= 0) collection.splice(index, 1);
+      }
+
+      function saveTodo(data) {
+        const editId = currentEditId(els.todoForm);
+        const now = dateTimeISO();
+        const item = {
+          id: editId || uid('todo'),
+          title: data.title,
+          dueDate: data.dueDate || '',
+          priority: data.priority,
+          category: data.category,
+          customerId: data.customerId || '',
+          note: data.note,
+          done: editId ? state.todos.find(i => i.id === editId)?.done || false : false,
+          createdAt: editId ? state.todos.find(i => i.id === editId)?.createdAt || now : now,
+          updatedAt: now
+        };
+        upsertById(state.todos, item);
+        clearFormState(els.todoForm, els.todoSubmit, '保存待办');
+        toast(editId ? '待办已更新' : '待办已保存');
+      }
+
+      function saveContract(data) {
+        const editId = currentEditId(els.contractForm);
+        const now = dateTimeISO();
+        const item = {
+          id: editId || uid('con'),
+          title: data.title,
+          myName: data.myName || state.settings.myName,
+          customerId: data.customerId || '',
+          counterpartyName: data.counterpartyName || '',
+          type: data.type,
+          amount: data.amount === '' ? '' : Number(data.amount),
+          startDate: data.startDate || '',
+          endDate: data.endDate || '',
+          signDate: data.signDate || '',
+          autoRenew: data.autoRenew || 'no',
+          payment: data.payment,
+          delivery: data.delivery,
+          note: data.note,
+          draftText: buildContractText(data),
+          createdAt: editId ? state.contracts.find(i => i.id === editId)?.createdAt || now : now,
+          updatedAt: now
+        };
+        upsertById(state.contracts, item);
+        clearFormState(els.contractForm, els.contractSubmit, '保存草稿');
+        els.contractPreview.textContent = buildContractText({
+          title: '',
+          myName: '',
+          customerId: '',
+          counterpartyName: '',
+          type: '制作合同',
+          amount: '',
+          startDate: '',
+          endDate: '',
+          signDate: '',
+          autoRenew: 'no',
+          payment: '',
+          delivery: '',
+          note: ''
+        });
+        toast(editId ? '合同草稿已更新' : '合同草稿已保存');
+      }
+
+      function saveReview(data) {
+        const analysis = analyzeContract(data.text);
+        const now = dateTimeISO();
+        const item = {
+          id: uid('rev'),
+          title: data.title || data.text.split('\n').find(line => line.trim()) || '未命名审核',
+          text: data.text,
+          score: analysis.score,
+          issues: analysis.issues,
+          source: data.source || '手动粘贴',
+          createdAt: now
+        };
+        state.reviews.unshift(item);
+        renderReviewResult(analysis);
+        toast('审核结果已保存');
+      }
+
+      function saveSchedule(data) {
+        const editId = currentEditId(els.scheduleForm);
+        const now = dateTimeISO();
+        const item = {
+          id: editId || uid('sch'),
+          title: data.title,
+          date: data.date || '',
+          time: data.time || '',
+          kind: data.kind,
+          status: data.status,
+          customerId: data.customerId || '',
+          contractId: data.contractId || '',
+          note: data.note,
+          createdAt: editId ? state.schedules.find(i => i.id === editId)?.createdAt || now : now,
+          updatedAt: now
+        };
+        upsertById(state.schedules, item);
+        clearFormState(els.scheduleForm, els.scheduleSubmit, '保存排期');
+        toast(editId ? '排期已更新' : '排期已保存');
+      }
+
+      function saveShipment(data) {
+        const editId = currentEditId(els.shipmentForm);
+        const now = dateTimeISO();
+        const item = {
+          id: editId || uid('ship'),
+          title: data.title,
+          courier: data.courier,
+          tracking: data.tracking,
+          customerId: data.customerId || '',
+          receiver: data.receiver,
+          shipDate: data.shipDate || '',
+          eta: data.eta || '',
+          status: data.status,
+          note: data.note,
+          createdAt: editId ? state.shipments.find(i => i.id === editId)?.createdAt || now : now,
+          updatedAt: now
+        };
+        upsertById(state.shipments, item);
+        clearFormState(els.shipmentForm, els.shipmentSubmit, '保存快递');
+        toast(editId ? '快递记录已更新' : '快递记录已保存');
+      }
+
+      function saveTime(data) {
+        const editId = currentEditId(els.timeForm);
+        const now = dateTimeISO();
+        const item = {
+          id: editId || uid('time'),
+          date: data.date || '',
+          customerId: data.customerId || '',
+          project: data.project,
+          task: data.task,
+          hours: Number(data.hours || 0),
+          billable: data.billable || 'yes',
+          note: data.note,
+          createdAt: editId ? state.timeLogs.find(i => i.id === editId)?.createdAt || now : now,
+          updatedAt: now
+        };
+        upsertById(state.timeLogs, item);
+        clearFormState(els.timeForm, els.timeSubmit, '保存工时');
+        toast(editId ? '工时已更新' : '工时已保存');
+      }
+
+      function saveType(data) {
+        const editId = currentEditId(els.typeForm);
+        const now = dateTimeISO();
+        const item = {
+          id: editId || uid('type'),
+          name: data.name,
+          color: data.color || '#2563eb',
+          note: data.note,
+          createdAt: editId ? state.customerTypes.find(i => i.id === editId)?.createdAt || now : now,
+          updatedAt: now
+        };
+        upsertById(state.customerTypes, item);
+        clearFormState(els.typeForm, els.typeSubmit, '保存类型');
+        toast(editId ? '客户类型已更新' : '客户类型已保存');
+      }
+
+      function saveCustomer(data) {
+        const editId = currentEditId(els.customerForm);
+        const now = dateTimeISO();
+        const item = {
+          id: editId || uid('cus'),
+          name: data.name,
+          typeId: data.typeId || '',
+          industry: data.industry,
+          contact: data.contact,
+          status: data.status,
+          note: data.note,
+          createdAt: editId ? state.customers.find(i => i.id === editId)?.createdAt || now : now,
+          updatedAt: now
+        };
+        upsertById(state.customers, item);
+        clearFormState(els.customerForm, els.customerSubmit, '保存客户');
+        toast(editId ? '客户已更新' : '客户已保存');
+      }
+
+      function handleListAction(target) {
+        const act = target.dataset.act;
+        const id = target.dataset.id;
+        if (!act || !id) return false;
+        if (act === 'toggle-todo') {
+          const item = state.todos.find(x => x.id === id);
+          if (item) { item.done = !item.done; item.updatedAt = dateTimeISO(); toast(item.done ? '待办已完成' : '待办已恢复'); }
+        }
+        if (act === 'edit-todo') fillTodoForm(state.todos.find(x => x.id === id));
+        if (act === 'delete-todo') {
+          if (confirm('删除这条待办？')) { removeById(state.todos, id); toast('待办已删除'); }
+        }
+
+        if (act === 'edit-contract') fillContractForm(state.contracts.find(x => x.id === id));
+        if (act === 'delete-contract') {
+          if (confirm('删除这份合同草稿？')) { removeById(state.contracts, id); toast('合同草稿已删除'); }
+        }
+        if (act === 'copy-contract') {
+          const item = state.contracts.find(x => x.id === id);
+          if (item) copyToClipboard(item.draftText || buildContractText(item));
+        }
+        if (act === 'send-review') {
+          const item = state.contracts.find(x => x.id === id);
+          if (item) fillReviewForm(item.draftText || buildContractText(item), item.title);
+        }
+
+        if (act === 'load-review') {
+          const item = state.reviews.find(x => x.id === id);
+          if (item) fillReviewForm(item.text, item.title);
+        }
+        if (act === 'delete-review') {
+          if (confirm('删除这条审核记录？')) { removeById(state.reviews, id); toast('审核记录已删除'); }
+        }
+
+        if (act === 'edit-schedule') fillScheduleForm(state.schedules.find(x => x.id === id));
+        if (act === 'toggle-schedule') {
+          const item = state.schedules.find(x => x.id === id);
+          if (item) {
+            item.status = item.status === '已完成' ? '待开始' : '已完成';
+            item.updatedAt = dateTimeISO();
+            toast('排期状态已更新');
+          }
+        }
+        if (act === 'delete-schedule') {
+          if (confirm('删除这条排期？')) { removeById(state.schedules, id); toast('排期已删除'); }
+        }
+
+        if (act === 'edit-shipment') fillShipmentForm(state.shipments.find(x => x.id === id));
+        if (act === 'mark-shipped') {
+          const item = state.shipments.find(x => x.id === id);
+          if (item) {
+            item.status = '已签收';
+            item.updatedAt = dateTimeISO();
+            toast('快递已标记签收');
+          }
+        }
+        if (act === 'delete-shipment') {
+          if (confirm('删除这条快递记录？')) { removeById(state.shipments, id); toast('快递记录已删除'); }
+        }
+
+        if (act === 'edit-time') fillTimeForm(state.timeLogs.find(x => x.id === id));
+        if (act === 'delete-time') {
+          if (confirm('删除这条工时记录？')) { removeById(state.timeLogs, id); toast('工时记录已删除'); }
+        }
+
+        if (act === 'edit-type') fillTypeForm(state.customerTypes.find(x => x.id === id));
+        if (act === 'delete-type') {
+          const used = state.customers.some(customer => customer.typeId === id);
+          if (used) {
+            alert('这个类型还有客户在使用，先给客户换类型再删。');
+          } else if (confirm('删除这个客户类型？')) {
+            removeById(state.customerTypes, id);
+            toast('客户类型已删除');
+          }
+        }
+
+        if (act === 'edit-customer') fillCustomerForm(state.customers.find(x => x.id === id));
+        if (act === 'delete-customer') {
+          if (confirm('删除这个客户档案？')) { removeById(state.customers, id); toast('客户已删除'); }
+        }
+
+        return true;
+      }
+
+      async function copyToClipboard(text) {
+        const value = String(text || '');
+        if (!value) {
+          toast('没有可复制的内容');
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(value);
+          toast('已复制到剪贴板');
+        } catch {
+          const box = document.createElement('textarea');
+          box.value = value;
+          document.body.appendChild(box);
+          box.select();
+          document.execCommand('copy');
+          box.remove();
+          toast('已复制到剪贴板');
+        }
+      }
+
+      function exportBackup() {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Sofia备份_${todayISO()}.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast('已导出备份');
+      }
+
+      function importBackup(file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = normalizeState(JSON.parse(reader.result));
+            state = parsed;
+            saveState();
+            render();
+            toast('备份已导入');
+          } catch {
+            alert('备份文件格式不对。');
+          }
+        };
+        reader.readAsText(file, 'utf-8');
+      }
+
+      function bindShortcuts() {
+        document.addEventListener('click', e => {
+          const tabBtn = e.target.closest('.nav-item');
+          if (tabBtn) {
+            setActiveTab(tabBtn.dataset.tab);
+            return;
+          }
+          const jump = e.target.closest('[data-jump]');
+          if (jump) {
+            setActiveTab(jump.dataset.jump);
+            return;
+          }
+          const listAction = e.target.closest('[data-act]');
+          if (listAction) {
+            if (handleListAction(listAction)) {
+              saveState();
+              render();
+            }
+          }
+        });
+
+        els.globalSearch.addEventListener('input', () => {
+          state.ui.search = els.globalSearch.value.trim();
+          saveState();
+          render();
+        });
+
+        els.todoStatusFilter.addEventListener('change', renderTodos);
+
+        els.todoForm.addEventListener('submit', e => {
+          e.preventDefault();
+          saveTodo({
+            title: els.todoTitle.value.trim(),
+            dueDate: els.todoDue.value,
+            priority: els.todoPriority.value,
+            category: els.todoCategory.value,
+            customerId: els.todoCustomer.value,
+            note: els.todoNote.value.trim()
+          });
+          saveState();
+          render();
+        });
+        els.todoClear.addEventListener('click', () => {
+          clearFormState(els.todoForm, els.todoSubmit, '保存待办');
+        });
+
+        els.contractForm.addEventListener('input', () => {
+          syncContractPreview();
+        });
+        els.contractCustomer.addEventListener('change', () => {
+          const selected = customerById(els.contractCustomer.value);
+          if (selected && !els.contractCustomerName.value.trim()) els.contractCustomerName.value = selected.name;
+          syncContractPreview();
+        });
+        els.contractForm.addEventListener('submit', e => {
+          e.preventDefault();
+          const data = readContractForm();
+          saveContract(data);
+          saveState();
+          render();
+        });
+        els.contractReset.addEventListener('click', () => {
+          clearFormState(els.contractForm, els.contractSubmit, '保存草稿');
+        });
+        els.copyDraftBtn.addEventListener('click', () => {
+          copyToClipboard(els.contractPreview.textContent);
+        });
+
+        els.reviewForm.addEventListener('submit', e => {
+          e.preventDefault();
+          const data = { title: els.reviewTitle.value.trim(), text: els.reviewText.value.trim(), source: els.reviewTitle.value.trim() || '手动粘贴' };
+          if (!data.text) {
+            toast('先输入或载入合同文本');
+            return;
+          }
+          saveReview(data);
+          saveState();
+          render();
+        });
+        els.reviewClear.addEventListener('click', () => {
+          els.reviewTitle.value = '';
+          els.reviewText.value = '';
+          renderReviewResult(null);
+        });
+        els.loadReviewSource.addEventListener('click', () => {
+          const item = state.contracts.find(x => x.id === els.reviewSource.value);
+          if (!item) { toast('先选一份合同草稿'); return; }
+          fillReviewForm(item.draftText || buildContractText(item), item.title);
+        });
+
+        els.scheduleForm.addEventListener('submit', e => {
+          e.preventDefault();
+          saveSchedule({
+            title: els.scheduleTitle.value.trim(),
+            date: els.scheduleDate.value,
+            time: els.scheduleTime.value,
+            kind: els.scheduleKind.value,
+            status: els.scheduleStatus.value,
+            customerId: els.scheduleCustomer.value,
+            contractId: els.scheduleContract.value,
+            note: els.scheduleNote.value.trim()
+          });
+          saveState();
+          render();
+        });
+        els.scheduleClear.addEventListener('click', () => clearFormState(els.scheduleForm, els.scheduleSubmit, '保存排期'));
+
+        els.shipmentForm.addEventListener('submit', e => {
+          e.preventDefault();
+          saveShipment({
+            title: els.shipmentTitle.value.trim(),
+            courier: els.shipmentCourier.value.trim(),
+            tracking: els.shipmentTracking.value.trim(),
+            customerId: els.shipmentCustomer.value,
+            receiver: els.shipmentReceiver.value.trim(),
+            shipDate: els.shipmentShipDate.value,
+            eta: els.shipmentEta.value,
+            status: els.shipmentStatus.value,
+            note: els.shipmentNote.value.trim()
+          });
+          saveState();
+          render();
+        });
+        els.shipmentClear.addEventListener('click', () => clearFormState(els.shipmentForm, els.shipmentSubmit, '保存快递'));
+
+        els.timeForm.addEventListener('submit', e => {
+          e.preventDefault();
+          saveTime({
+            date: els.timeDate.value,
+            customerId: els.timeCustomer.value,
+            project: els.timeProject.value.trim(),
+            task: els.timeTask.value.trim(),
+            hours: els.timeHours.value,
+            billable: els.timeBillable.value,
+            note: els.timeNote.value.trim()
+          });
+          saveState();
+          render();
+        });
+        els.timeClear.addEventListener('click', () => clearFormState(els.timeForm, els.timeSubmit, '保存工时'));
+
+        els.typeForm.addEventListener('submit', e => {
+          e.preventDefault();
+          saveType({
+            name: els.typeName.value.trim(),
+            color: els.typeColor.value,
+            note: els.typeNote.value.trim()
+          });
+          saveState();
+          render();
+        });
+        els.typeClear.addEventListener('click', () => clearFormState(els.typeForm, els.typeSubmit, '保存类型'));
+
+        els.customerForm.addEventListener('submit', e => {
+          e.preventDefault();
+          saveCustomer({
+            name: els.customerName.value.trim(),
+            typeId: els.customerType.value,
+            industry: els.customerIndustry.value.trim(),
+            contact: els.customerContact.value.trim(),
+            status: els.customerStatus.value,
+            note: els.customerNote.value.trim()
+          });
+          saveState();
+          render();
+        });
+        els.customerClear.addEventListener('click', () => clearFormState(els.customerForm, els.customerSubmit, '保存客户'));
+
+        els.exportBtn.addEventListener('click', exportBackup);
+        els.syncConnectBtn.addEventListener('click', connectSyncKey);
+        els.syncGenerateBtn.addEventListener('click', generateSyncKey);
+        els.cloudSyncBtn.addEventListener('click', () => syncToCloud(true));
+        els.cloudLogoutBtn.addEventListener('click', () => {
+          persistSyncKey('');
+          els.syncKeyInput.value = '';
+          setCloudStatus('已清除本机口令，本地数据仍保留');
+          toast('已清除本机同步口令');
+        });
+        els.importBtn.addEventListener('click', () => els.importFile.click());
+        els.importFile.addEventListener('change', e => {
+          const file = e.target.files && e.target.files[0];
+          if (file) importBackup(file);
+          e.target.value = '';
+        });
+
+        document.addEventListener('keydown', e => {
+          if (e.key === 'Escape') {
+            els.todoForm.removeAttribute('data-edit-id');
+            els.contractForm.removeAttribute('data-edit-id');
+            els.scheduleForm.removeAttribute('data-edit-id');
+            els.shipmentForm.removeAttribute('data-edit-id');
+            els.timeForm.removeAttribute('data-edit-id');
+            els.typeForm.removeAttribute('data-edit-id');
+            els.customerForm.removeAttribute('data-edit-id');
+          }
+        });
+      }
+
+      async function init() {
+        setFieldsetDefaults();
+        els.globalSearch.value = state.ui.search || '';
+        els.reviewScore.textContent = '--';
+        els.contractPreview.textContent = buildContractText({
+          title: '',
+          myName: state.settings.myName,
+          customerId: '',
+          counterpartyName: '',
+          type: '制作合同',
+          amount: '',
+          startDate: '',
+          endDate: '',
+          signDate: '',
+          autoRenew: 'no',
+          payment: '',
+          delivery: '',
+          note: ''
+        });
+        bindShortcuts();
+        renderReviewResult(null);
+        render();
+        if (syncKey) {
+          setCloudStatus('云端已连接');
+          await loadCloudWorkspace();
+        } else {
+          setCloudStatus('输入同一同步口令即可跨设备使用');
+          toast('工作台已就绪');
+        }
+      }
+
+      init();
+      if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+        navigator.serviceWorker.register('./sofia-sw.js').catch(error => console.warn('Sofia 离线缓存未启用', error));
+      }
+    })();
+  </script>
+</body>
+</html>

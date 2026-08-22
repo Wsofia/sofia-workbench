@@ -1,0 +1,18 @@
+{
+  "name": "Sofia 个人工作台",
+  "short_name": "Sofia",
+  "description": "个人工作与合同管理工作台",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eef2f7",
+  "theme_color": "#0f172a",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "sofia-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
