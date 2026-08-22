@@ -1269,7 +1269,10 @@
         if (!syncKey) throw new Error('请先连接同步口令');
         const keyHash = await hashSyncKey(syncKey);
         let body;
-        const headers = { apikey: SUPABASE_ANON_KEY };
+        const headers = {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+        };
         if (file) {
           body = new FormData();
           body.append('action', action);
@@ -1284,7 +1287,10 @@
         const text = await response.text();
         let result = null;
         try { result = text ? JSON.parse(text) : null; } catch { result = null; }
-        if (!response.ok) throw new Error((result && result.error) || text || '文件接口请求失败');
+        if (!response.ok) {
+          const detail = (result && result.error) || text || `HTTP ${response.status}`;
+          throw new Error(`${detail}（接口状态 ${response.status}）`);
+        }
         return result || {};
       }
 
@@ -1296,7 +1302,7 @@
         return `${(value / 1024 / 1024 / 1024).toFixed(1)} GB`;
       }
 
-      function renderFiles() {
+      function renderFiles(statusMessage = '') {
         const query = plain(els.fileSearch.value).toLowerCase();
         const items = fileItems.filter(item => !query || `${item.name} ${item.folder}`.toLowerCase().includes(query));
         els.fileList.innerHTML = items.length ? items.map(item => `
@@ -1311,22 +1317,32 @@
             </div>
           </div>
         `).join('') : '<div class="empty">还没有文件。选择文件后上传到私有 Storage。</div>';
-        els.fileStatus.textContent = syncKey ? `共 ${items.length} 个文件` : '请先连接同步口令';
-        els.filePathLabel.textContent = syncKey ? '私有桶 · 临时下载链接' : '';
+        if (statusMessage) {
+          els.fileStatus.textContent = statusMessage;
+        } else {
+          els.fileStatus.textContent = syncKey ? `共 ${items.length} 个文件` : '请先连接同步口令';
+        }
+        const folder = cleanFileFolder(els.fileFolder.value);
+        els.filePathLabel.textContent = syncKey
+          ? `当前目录：${folder || '全部文件'} · 私有桶 · 临时下载链接`
+          : '';
       }
 
       async function loadFiles() {
-        if (!syncKey) { fileItems = []; renderFiles(); return; }
+        if (!syncKey) { fileItems = []; renderFiles(); return true; }
         try {
           els.fileStatus.textContent = '正在读取文件...';
           const folder = cleanFileFolder(els.fileFolder.value);
           const result = await fileApi('list', { folder });
           fileItems = Array.isArray(result.items) ? result.items : [];
           renderFiles();
+          return true;
         } catch (error) {
           fileItems = [];
-          renderFiles();
-          toast(error.message || '文件列表读取失败');
+          const message = error.message || '文件列表读取失败';
+          renderFiles(`读取失败：${message}`);
+          toast(message);
+          return false;
         }
       }
 
@@ -1342,10 +1358,17 @@
             await fileApi('upload', { folder }, files[index]);
           }
           els.fileInput.value = '';
-          await loadFiles();
+          const refreshed = await loadFiles();
+          if (refreshed) {
+            els.fileStatus.textContent = `上传成功：${files.map(file => cleanFileName(file.name)).join('、')}（${folder || '根目录'}）`;
+          } else {
+            els.fileStatus.textContent += '；上传请求已完成，请先更新文件接口后再点“刷新文件”';
+          }
           toast('文件已上传到私有 Storage');
         } catch (error) {
-          toast(error.message || '文件上传失败');
+          const message = error.message || '文件上传失败';
+          els.fileStatus.textContent = `上传失败：${message}`;
+          toast(message);
         } finally {
           els.fileUploadBtn.disabled = false;
         }
