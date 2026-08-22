@@ -147,14 +147,6 @@
     .cloud-user{font-size:12px;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .cloud-actions{display:flex;gap:8px}
     .cloud-actions button{flex:1;padding:8px 9px;font-size:12px}
-    .file-toolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
-    .file-toolbar .field{min-width:180px;flex:1}
-    .file-list{display:grid;gap:8px;margin-top:12px}
-    .file-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
-    .file-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .file-meta{font-size:12px;color:var(--muted);margin-top:3px}
-    .file-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
-    .file-note{padding:10px 12px;border-radius:10px;background:#fff8e7;color:#8a5a00;border:1px solid #f4d48a;font-size:12px;line-height:1.5}
     .sidebar-footer button{width:100%}
     .content{
       padding:24px;
@@ -529,7 +521,6 @@
         <button class="nav-item" data-tab="shipments"><span>快递</span><span class="count" id="count-shipments">0</span></button>
         <button class="nav-item" data-tab="hours"><span>工时</span><span class="count" id="count-hours">0</span></button>
         <button class="nav-item" data-tab="customers"><span>客户类型</span><span class="count" id="count-customers">0</span></button>
-        <button class="nav-item" data-tab="files"><span>文件库</span><span class="count" id="count-files">0</span></button>
       </nav>
 
       <div class="sidebar-footer">
@@ -885,30 +876,6 @@
           <div class="list" id="customerList"></div>
         </div>
       </section>
-
-      <section class="panel" data-tab="files" id="panel-files">
-        <div class="section-head">
-          <div>
-            <h3>文件库</h3>
-            <p>文件上传到 Supabase Storage，电脑和手机使用同一同步口令即可查看。</p>
-          </div>
-          <div class="inline-actions">
-            <button class="secondary" type="button" id="fileRefreshBtn">刷新文件</button>
-            <button class="ghost" type="button" id="fileChooseBtn">选择文件</button>
-            <input id="fileInput" type="file" multiple hidden />
-          </div>
-        </div>
-        <div class="file-note">当前文件库使用同步口令对应的 Storage 路径隔离。请不要上传身份证、银行卡等高敏感文件，也不要把文件链接公开分享。</div>
-        <div class="block">
-          <div class="file-toolbar">
-            <div class="field"><label for="fileFolder">文件夹</label><input id="fileFolder" placeholder="例如：星河传媒 / 合同" /></div>
-            <div class="field"><label for="fileSearch">搜索文件</label><input id="fileSearch" placeholder="按文件名搜索" /></div>
-            <button class="primary" type="button" id="fileUploadBtn">上传选中文件</button>
-          </div>
-          <div class="hint-row" style="margin-top:12px"><span id="fileStatus">尚未加载文件</span><span id="filePathLabel"></span></div>
-          <div class="file-list" id="fileList"></div>
-        </div>
-      </section>
     </main>
   </div>
 
@@ -921,7 +888,6 @@
       const SUPABASE_URL = 'https://orkwowolassrakgtplrl.supabase.co';
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ya3dvd29sYXNzcmFrZ3RwbHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNzE2NTksImV4cCI6MjEwMjk0NzY1OX0.iNRUkrpXakuKBqcrizrPuJHpqiKCm3u8rwO0wVzzpxw';
       const CLOUD_TABLE = 'sofia_workspace';
-      const FILE_API_URL = `${SUPABASE_URL}/functions/v1/sofia-files`;
       const TAB_LABELS = {
         overview: '总览',
         todos: '待办',
@@ -930,8 +896,7 @@
         schedule: '排期',
         shipments: '快递',
         hours: '工时',
-        customers: '客户类型',
-        files: '文件库'
+        customers: '客户类型'
       };
 
       const COLORS = ['#2563eb', '#0ea5a4', '#f59e0b', '#ef4444', '#16a34a', '#7c3aed', '#0f766e', '#ea580c'];
@@ -950,15 +915,6 @@
         syncGenerateBtn: document.getElementById('syncGenerateBtn'),
         cloudSyncBtn: document.getElementById('cloudSyncBtn'),
         cloudLogoutBtn: document.getElementById('cloudLogoutBtn'),
-        fileChooseBtn: document.getElementById('fileChooseBtn'),
-        fileInput: document.getElementById('fileInput'),
-        fileFolder: document.getElementById('fileFolder'),
-        fileSearch: document.getElementById('fileSearch'),
-        fileUploadBtn: document.getElementById('fileUploadBtn'),
-        fileRefreshBtn: document.getElementById('fileRefreshBtn'),
-        fileStatus: document.getElementById('fileStatus'),
-        filePathLabel: document.getElementById('filePathLabel'),
-        fileList: document.getElementById('fileList'),
         globalSearch: document.getElementById('globalSearch'),
         exportBtn: document.getElementById('exportBtn'),
         importBtn: document.getElementById('importBtn'),
@@ -1228,7 +1184,6 @@
       let syncKey = localStorage.getItem(SYNC_KEY_STORAGE) || '';
       let cloudSyncTimer = null;
       let isLoadingCloud = false;
-      let fileItems = [];
 
       function setCloudStatus(message) {
         els.cloudStatus.textContent = message;
@@ -1254,122 +1209,6 @@
         const bytes = new TextEncoder().encode(value);
         const digest = await crypto.subtle.digest('SHA-256', bytes);
         return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
-      }
-
-      function cleanFileFolder(value) {
-        return String(value || '').replace(/\\/g, '/').split('/').map(part => part.trim()).filter(part => part && part !== '.' && part !== '..').join('/').replace(/[^\u4e00-\u9fff\w .()\-\/]/g, '_').slice(0, 160);
-      }
-
-      function cleanFileName(value) {
-        const name = String(value || '未命名文件').replace(/[\\/\0]/g, '_').replace(/[<>:"|?*]/g, '_').trim();
-        return (name || '未命名文件').slice(0, 180);
-      }
-
-      async function fileApi(action, payload = {}, file) {
-        if (!syncKey) throw new Error('请先连接同步口令');
-        const keyHash = await hashSyncKey(syncKey);
-        let body;
-        const headers = { apikey: SUPABASE_ANON_KEY };
-        if (file) {
-          body = new FormData();
-          body.append('action', action);
-          body.append('keyHash', keyHash);
-          Object.entries(payload).forEach(([key, value]) => body.append(key, value));
-          body.append('file', file, cleanFileName(file.name));
-        } else {
-          headers['Content-Type'] = 'application/json';
-          body = JSON.stringify({ action, keyHash, ...payload });
-        }
-        const response = await fetch(FILE_API_URL, { method: 'POST', headers, body });
-        const text = await response.text();
-        let result = null;
-        try { result = text ? JSON.parse(text) : null; } catch { result = null; }
-        if (!response.ok) throw new Error((result && result.error) || text || '文件接口请求失败');
-        return result || {};
-      }
-
-      function formatBytes(bytes) {
-        const value = Number(bytes) || 0;
-        if (value < 1024) return `${value} B`;
-        if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-        if (value < 1024 * 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB`;
-        return `${(value / 1024 / 1024 / 1024).toFixed(1)} GB`;
-      }
-
-      function renderFiles() {
-        const query = plain(els.fileSearch.value).toLowerCase();
-        const items = fileItems.filter(item => !query || `${item.name} ${item.folder}`.toLowerCase().includes(query));
-        els.fileList.innerHTML = items.length ? items.map(item => `
-          <div class="file-row">
-            <div class="item-main">
-              <div class="file-name">${escapeHtml(item.name)}</div>
-              <div class="file-meta">${escapeHtml(item.folder || '根目录')} · ${escapeHtml(formatBytes(item.metadata?.size || item.size || 0))}</div>
-            </div>
-            <div class="file-actions">
-              <button class="small secondary" data-file-act="download" data-file-path="${escapeHtml(item.path)}">下载</button>
-              <button class="small danger" data-file-act="delete" data-file-path="${escapeHtml(item.path)}">删除</button>
-            </div>
-          </div>
-        `).join('') : '<div class="empty">还没有文件。选择文件后上传到私有 Storage。</div>';
-        els.fileStatus.textContent = syncKey ? `共 ${items.length} 个文件` : '请先连接同步口令';
-        els.filePathLabel.textContent = syncKey ? '私有桶 · 临时下载链接' : '';
-      }
-
-      async function loadFiles() {
-        if (!syncKey) { fileItems = []; renderFiles(); return; }
-        try {
-          els.fileStatus.textContent = '正在读取文件...';
-          const folder = cleanFileFolder(els.fileFolder.value);
-          const result = await fileApi('list', { folder });
-          fileItems = Array.isArray(result.items) ? result.items : [];
-          renderFiles();
-        } catch (error) {
-          fileItems = [];
-          renderFiles();
-          toast(error.message || '文件列表读取失败');
-        }
-      }
-
-      async function uploadFiles() {
-        const files = Array.from(els.fileInput.files || []);
-        if (!syncKey) { toast('请先连接同步口令'); return; }
-        if (!files.length) { toast('请先选择文件'); return; }
-        const folder = cleanFileFolder(els.fileFolder.value);
-        els.fileUploadBtn.disabled = true;
-        try {
-          for (let index = 0; index < files.length; index += 1) {
-            els.fileStatus.textContent = `正在上传 ${index + 1}/${files.length}...`;
-            await fileApi('upload', { folder }, files[index]);
-          }
-          els.fileInput.value = '';
-          await loadFiles();
-          toast('文件已上传到私有 Storage');
-        } catch (error) {
-          toast(error.message || '文件上传失败');
-        } finally {
-          els.fileUploadBtn.disabled = false;
-        }
-      }
-
-      async function downloadFile(path) {
-        try {
-          const result = await fileApi('sign', { path });
-          if (!result.url) throw new Error('没有拿到临时下载链接');
-          window.open(result.url, '_blank', 'noopener');
-        } catch (error) {
-          toast(error.message || '文件下载失败');
-        }
-      }
-
-      async function deleteFile(path) {
-        if (!confirm('删除这个文件？删除后电脑和手机都无法继续下载。')) return;
-        try {
-          await fileApi('delete', { path });
-          await loadFiles();
-          toast('文件已删除');
-        } catch (error) {
-          toast(error.message || '文件删除失败');
-        }
       }
 
       async function cloudRequest(functionName, body) {
@@ -1453,7 +1292,6 @@
           persistSyncKey(key);
           setCloudStatus('正在连接云端...');
           await loadCloudWorkspace();
-          await loadFiles();
           toast('同步口令已连接');
         } catch (error) {
           console.error(error);
@@ -1610,7 +1448,6 @@
         document.getElementById('count-shipments').textContent = shipmentCount;
         document.getElementById('count-hours').textContent = hoursCount;
         document.getElementById('count-customers').textContent = customerCount;
-        document.getElementById('count-files').textContent = fileItems.length;
       }
 
       function setActiveTab(tab) {
@@ -2145,7 +1982,6 @@
         renderHours();
         renderCustomerTypes();
         renderCustomers();
-        renderFiles();
         syncContractPreview();
       }
 
@@ -2600,12 +2436,6 @@
             setActiveTab(jump.dataset.jump);
             return;
           }
-          const fileAction = e.target.closest('[data-file-act]');
-          if (fileAction) {
-            if (fileAction.dataset.fileAct === 'download') downloadFile(fileAction.dataset.filePath);
-            if (fileAction.dataset.fileAct === 'delete') deleteFile(fileAction.dataset.filePath);
-            return;
-          }
           const listAction = e.target.closest('[data-act]');
           if (listAction) {
             if (handleListAction(listAction)) {
@@ -2769,16 +2599,9 @@
         els.cloudLogoutBtn.addEventListener('click', () => {
           persistSyncKey('');
           els.syncKeyInput.value = '';
-          fileItems = [];
-          renderFiles();
           setCloudStatus('已清除本机口令，本地数据仍保留');
           toast('已清除本机同步口令');
         });
-        els.fileChooseBtn.addEventListener('click', () => els.fileInput.click());
-        els.fileUploadBtn.addEventListener('click', uploadFiles);
-        els.fileRefreshBtn.addEventListener('click', loadFiles);
-        els.fileFolder.addEventListener('change', loadFiles);
-        els.fileSearch.addEventListener('input', renderFiles);
         els.importBtn.addEventListener('click', () => els.importFile.click());
         els.importFile.addEventListener('change', e => {
           const file = e.target.files && e.target.files[0];
@@ -2824,7 +2647,6 @@
         if (syncKey) {
           setCloudStatus('云端已连接');
           await loadCloudWorkspace();
-          await loadFiles();
         } else {
           setCloudStatus('输入同一同步口令即可跨设备使用');
           toast('工作台已就绪');
