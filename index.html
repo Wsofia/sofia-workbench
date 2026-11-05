@@ -4141,7 +4141,7 @@
                 '<td style="font-variant-numeric:tabular-nums">' + esc(r.code || '—') + '</td>' +
                 '<td style="max-width:220px">' + esc(r.addr || '—') + '</td>' +
                 '<td><div class="lg-summary" title="' + esc(summary) + '">' + esc(summary) + '</div></td>' +
-                '<td>' + (r.srcKey ? '<span class="lg-b s" data-lg-act="dl-lic" data-id="' + esc(r.id) + '">查看原件</span>' : '<span class="lg-b miss">无</span>') + '</td>' +
+                '<td>' + (r.srcKey ? '<span class="lg-b s" data-lg-act="dl-lic" data-id="' + esc(r.id) + '">下载原件</span>' : '<span class="lg-b miss">无</span>') + '</td>' +
                 '<td><div class="lg-acts">' +
                   '<button class="lg-mini" data-lg-act="edit-license" data-id="' + esc(r.id) + '">编辑</button>' +
                   '<button class="lg-mini danger" data-lg-act="del-license" data-id="' + esc(r.id) + '">删除</button>' +
@@ -4526,7 +4526,7 @@
               '<div class="tpl-info"><div class="tpl-name" title="' + esc(t.name) + '">' + esc(t.name) + '</div>' +
                 '<div class="tpl-meta">' + esc(t.createdAt || '') + (t.size ? ' · ' + Math.round(t.size / 1024) + ' KB' : '') + '</div></div>' +
               '<div class="tpl-acts">' +
-                '<button class="lg-mini" data-lg-act="tpl-preview" data-id="' + esc(t.id) + '">原件预览</button>' +
+                '<button class="lg-mini" data-lg-act="tpl-preview" data-id="' + esc(t.id) + '">下载原件</button>' +
                 '<button class="lg-mini" data-lg-act="tpl-draft" data-id="' + esc(t.id) + '">用模板起草</button>' +
                 '<button class="lg-mini danger" data-lg-act="tpl-del" data-id="' + esc(t.id) + '">删除</button>' +
               '</div></div>';
@@ -4549,7 +4549,7 @@
           ensureTables();
           var t = state.templates.find(function (x) { return x.id === id; });
           if (!t) return;
-          fpOpenKeyOrCloud(t, '');
+          downloadAttachment(t, 'srcKey', 'cloudSrcPath', t.name);
         }
         function tplDraft(id) {
           ensureTables();
@@ -4711,7 +4711,7 @@
               ensureTables();
               var lic = state.licenses.find(function (x) { return x.id === id; });
               if (!lic) return;
-              if (act === 'dl-lic') fpOpenKeyOrCloud(lic, '');
+              if (act === 'dl-lic') downloadAttachment(lic, 'srcKey', 'cloudSrcPath', lic.name);
               else ocrOpen('licenses', id, lic);
             }
             else if (act === 'rv-upload') { var ri = document.getElementById('rvFileIn'); if (ri) { ri.value = ''; ri.click(); } }
