@@ -677,6 +677,18 @@
     .tpl-meta{font-size:11px;color:var(--muted);margin-top:4px}
     .tpl-acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
     @media(max-width:820px){.tpl-card{flex-wrap:wrap}.tpl-acts{width:100%;justify-content:flex-start}}
+    /* 手机端微调：法务模块 */
+    @media(max-width:680px){
+      .lg-hero{padding:16px}
+      .lg-hero-btn{width:100%}
+      .lg-hero-btn .lg-btn{flex:1;justify-content:center}
+      .lg-table{font-size:12px}
+      .lg-table th,.lg-table td{padding:9px 8px}
+      .lg-summary{min-width:180px}
+      .oc-grid{grid-template-columns:1fr}
+      .oc-box{max-height:96vh}
+      .de-page{padding:24px 18px}
+    }
 
   </style>
 </head>
@@ -3914,6 +3926,32 @@
       LG.downloadBlob(rec.blob, rec.name || fallbackName || 'file');
     });
   };
+  /* 完整备份：枚举所有附件（含 blob），供打包导出 */
+  LG.listAllBlobs = function () {
+    return openDB().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(STORE, 'readonly');
+        var r = tx.objectStore(STORE).getAll();
+        r.onsuccess = function () { res(Array.isArray(r.result) ? r.result : []); };
+        r.onerror = function () { rej(r.error || new Error('枚举附件失败')); };
+      });
+    });
+  };
+  LG.blobToBase64 = function (blob) {
+    return new Promise(function (res, rej) {
+      var fr = new FileReader();
+      fr.onload = function () { res(String(fr.result || '')); };
+      fr.onerror = function () { rej(new Error('读取附件失败')); };
+      fr.readAsDataURL(blob);
+    });
+  };
+  LG.base64ToBlob = function (dataUrl, mime) {
+    var m = String(dataUrl || '').match(/^data:([^;]*);base64,(.*)$/);
+    if (!m) return null;
+    var binary = atob(m[2]), u8 = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) u8[i] = binary.charCodeAt(i);
+    return new Blob([u8], { type: mime || m[1] || 'application/octet-stream' });
+  };
 
   /* ---------------- 真 .xlsx（台账 / 证照导出） ---------------- */
   function xesc(s) {
@@ -4274,7 +4312,12 @@
           if (OC.file) {
             var key = (isC ? 'lgsrc:' : 'lcsrc:') + rec.id;
             p = LG.putBlob(key, OC.file, { name: OC.file.name, mime: OC.file.type })
-              .then(function () { rec.srcKey = key; rec.srcName = OC.file.name; });
+              .then(function () { rec.srcKey = key; rec.srcName = OC.file.name; })
+              .then(function () {
+                /* 连了同步口令就把原件也传云端，换电脑/手机可下载 */
+                return cloudUpload(OC.file, (isC ? 'lg-src_' : 'lc-src_') + rec.id + '_' + OC.file.name)
+                  .then(function (path) { if (path) rec.cloudSrcPath = path; });
+              });
           }
           p.then(function () {
             /* 上传的原始 docx 直接作为 Word 版本，保证格式与原件一致 */
@@ -4495,16 +4538,18 @@
           var id = LG.uid('tpl'), key = 'tplsrc:' + id;
           busy(true, '正在保存模板原件…');
           LG.putBlob(key, file, { name: file.name, mime: guessMime(file) }).then(function () {
-            state.templates.unshift({ id:id, name:file.name, srcKey:key, size:file.size || 0, createdAt:nowISO() });
+            var rec = { id:id, name:file.name, srcKey:key, size:file.size || 0, createdAt:nowISO() };
+            state.templates.unshift(rec);
             saveState(); renderAll(); busy(false);
             toast('模板已上传，可预览原件或用来起草');
+            cloudUpload(file, 'tpl_' + id + '_' + file.name).then(function (path) { if (path) { rec.cloudSrcPath = path; saveState(); } });
           }).catch(function (e) { busy(false); toast('模板保存失败：' + e.message); });
         }
         function tplPreview(id) {
           ensureTables();
           var t = state.templates.find(function (x) { return x.id === id; });
           if (!t) return;
-          fpOpenKey(t.srcKey, t.name, '');
+          fpOpenKeyOrCloud(t, '');
         }
         function tplDraft(id) {
           ensureTables();
@@ -4583,6 +4628,7 @@
             saveState(); renderAll();
             DE.dirty = false; deState('已保存 Word · ' + new Date().toLocaleTimeString('zh-CN'));
             toast('Word 已保存并同步到合同台账');
+            cloudUpload(blob, 'lg-word_' + DE.id + '.docx').then(function (path) { if (path && r) { r.cloudWordPath = path; saveState(); } });
           }).catch(function (e) { toast('保存失败：' + e.message); });
         }
         function deMakePdf() {
@@ -4597,6 +4643,7 @@
             saveState(); renderAll();
             deState('PDF 已生成 · ' + new Date().toLocaleTimeString('zh-CN'));
             toast('PDF 已生成并同步到合同台账');
+            cloudUpload(blob, 'lg-pdf_' + DE.id + '.pdf').then(function (path) { if (path && r) { r.cloudPdfPath = path; saveState(); } });
           }).catch(function (e) { toast('生成 PDF 失败：' + e.message); });
         }
         function deCmd(cmd, val) {
@@ -4656,14 +4703,15 @@
               ensureTables();
               var rec = state.ledger.find(function (x) { return x.id === id; });
               if (!rec) return;
-              var key = act === 'dl-word' ? rec.wordKey : act === 'dl-pdf' ? rec.pdfKey : rec.srcKey;
-              LG.downloadKey(key, rec.name).catch(function (err) { toast(err.message); });
+              var kf = act === 'dl-word' ? 'wordKey' : act === 'dl-pdf' ? 'pdfKey' : 'srcKey';
+              var pf = act === 'dl-word' ? 'cloudWordPath' : act === 'dl-pdf' ? 'cloudPdfPath' : 'cloudSrcPath';
+              downloadAttachment(rec, kf, pf, rec.name);
             }
             else if (act === 'dl-lic' || act === 'edit-license') {
               ensureTables();
               var lic = state.licenses.find(function (x) { return x.id === id; });
               if (!lic) return;
-              if (act === 'dl-lic') fpOpenKey(lic.srcKey, lic.name, '');
+              if (act === 'dl-lic') fpOpenKeyOrCloud(lic, '');
               else ocrOpen('licenses', id, lic);
             }
             else if (act === 'rv-upload') { var ri = document.getElementById('rvFileIn'); if (ri) { ri.value = ''; ri.click(); } }
@@ -4764,6 +4812,111 @@
           }
         });
 
+        /* ---------------- 云端附件（复用原版 fileApi / Supabase Storage） ---------------- */
+        var CLOUD_FOLDER = 'legal';
+        function cloudUpload(blob, uniqueName) {
+          if (!syncKey) return Promise.resolve(null);
+          var file;
+          try { file = new File([blob], cleanFileName(uniqueName), { type: (blob && blob.type) || 'application/octet-stream' }); }
+          catch (e) { return Promise.resolve(null); }
+          return fileApi('upload', { folder: CLOUD_FOLDER }, file).then(function () {
+            return fileApi('list', { folder: CLOUD_FOLDER });
+          }).then(function (res) {
+            var items = (res && res.items) || [];
+            for (var i = items.length - 1; i >= 0; i--) {
+              if (items[i].name === cleanFileName(uniqueName)) return items[i].path;
+            }
+            return null;
+          }).catch(function () { return null; });
+        }
+        function cloudDownload(path, fallbackName) {
+          if (!syncKey || !path) return Promise.resolve(false);
+          return fileApi('sign', { path: path }).then(function (res) {
+            if (res && res.url) { window.open(res.url, '_blank', 'noopener'); return true; }
+            return false;
+          }).catch(function () { return false; });
+        }
+        function downloadAttachment(rec, keyField, pathField, fallbackName) {
+          var path = rec && rec[pathField];
+          if (path) {
+            return cloudDownload(path, fallbackName).then(function (done) {
+              if (done) return;
+              LG.downloadKey(rec[keyField], fallbackName).catch(function (e) { toast(e.message); });
+            });
+          }
+          return LG.downloadKey(rec[keyField], fallbackName).catch(function (e) { toast(e.message); });
+        }
+        /* 预览优先本地，本地缺失时回退云端下载（换设备场景） */
+        function fpOpenKeyOrCloud(rec, text) {
+          LG.getBlob(rec.srcKey).then(function (r) {
+            if (r && r.blob) { fpOpenBlob(r.blob, r.name || rec.name, text); return; }
+            if (rec.cloudSrcPath) cloudDownload(rec.cloudSrcPath, rec.name);
+            else toast('原件不存在（可能换过设备且未上传云端）');
+          }).catch(function () {
+            if (rec.cloudSrcPath) cloudDownload(rec.cloudSrcPath, rec.name);
+            else toast('原件不存在');
+          });
+        }
+
+        /* ---------------- 完整备份（含附件）导出 / 导入 ---------------- */
+        function fullBackup() {
+          busy(true, '正在打包附件…');
+          LG.listAllBlobs().then(function (all) {
+            var atts = [];
+            var chain = Promise.resolve();
+            all.forEach(function (a) {
+              chain = chain.then(function () {
+                return LG.blobToBase64(a.blob).then(function (b64) {
+                  atts.push({ key: a.key, name: a.name, mime: a.mime, data: b64 });
+                });
+              });
+            });
+            return chain.then(function () {
+              var payload = { app: 'sofia-workbench', exportedAt: new Date().toISOString(), state: state, attachments: atts };
+              LG.downloadBlob(new Blob([JSON.stringify(payload)], { type: 'application/json;charset=utf-8' }),
+                'Sofia完整备份_' + todayISO() + '.json');
+              busy(false);
+              toast('完整备份已导出（含 ' + atts.length + ' 个附件）');
+            });
+          }).catch(function (e) { busy(false); toast('导出失败：' + e.message); });
+        }
+        function fullRestore(file) {
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            var payload;
+            try { payload = JSON.parse(reader.result); } catch (e) { alert('备份文件格式不对'); return; }
+            if (!payload || !payload.state) { alert('备份文件格式不对'); return; }
+            state = normalizeState(payload.state);
+            saveState();
+            var atts = payload.attachments || [];
+            var chain = Promise.resolve();
+            atts.forEach(function (a) {
+              var blob = LG.base64ToBlob(a.data, a.mime);
+              if (blob) chain = chain.then(function () { return LG.putBlob(a.key, blob, { name: a.name, mime: a.mime }); });
+            });
+            chain.then(function () {
+              render(); ensureTables();
+              toast('完整备份已恢复（字段 + ' + atts.length + ' 个附件）');
+            }).catch(function (e) { toast('附件恢复出错：' + e.message); });
+          };
+          reader.readAsText(file, 'utf-8');
+        }
+        function backupInject() {
+          var footer = document.querySelector('.sidebar-footer');
+          if (!footer || document.getElementById('fullExportBtn')) return;
+          footer.insertAdjacentHTML('beforeend',
+            '<button class="ghost" id="fullExportBtn">完整备份（含附件）</button>' +
+            '<button class="ghost" id="fullImportBtn">导入完整备份</button>' +
+            '<input id="fullImportFile" type="file" accept="application/json" hidden />');
+          var fe = document.getElementById('fullExportBtn');
+          var fi = document.getElementById('fullImportBtn');
+          var ff = document.getElementById('fullImportFile');
+          if (fe) fe.addEventListener('click', fullBackup);
+          if (fi) fi.addEventListener('click', function () { ff.click(); });
+          if (ff) ff.addEventListener('change', function (e) { var f = e.target.files && e.target.files[0]; if (f) fullRestore(f); e.target.value = ''; });
+        }
+
         /* ---------------- 接入 Sofia 原有渲染链 ---------------- */
         TAB_LABELS.ledger = '合同台账';
         TAB_LABELS.licenses = '证照资质';
@@ -4831,6 +4984,7 @@
         /* 往原有「合同审核 / 合同制作」面板注入新区块（在原表单元素上追加，不破坏原有事件绑定） */
         rvInject();
         tplInject();
+        backupInject();
         window.__SOFIA_LEGAL__ = {
           renderAll: renderAll, deOpen: deOpen, ocrOpen: ocrOpen, LG: LG,
           /* 冒烟 / 调试钩子 */
@@ -4847,7 +5001,10 @@
           tplHandleFile: tplHandleFile, tplDraft: tplDraft, tplPreview: tplPreview,
           renderTemplates: renderTemplates, previewUrl: previewUrl, pvKind: pvKind,
           pvHtml: pvHtml, ocSetPreview: ocSetPreview, ocRenderPv: ocRenderPv,
-          ocClose: ocClose, ocSave: ocSave, _oc: OC
+          ocClose: ocClose, ocSave: ocSave, _oc: OC,
+          fullBackup: fullBackup, fullRestore: fullRestore,
+          cloudUpload: cloudUpload, cloudDownload: cloudDownload,
+          downloadAttachment: downloadAttachment, fpOpenKeyOrCloud: fpOpenKeyOrCloud
         };
       })();
 
