@@ -4484,7 +4484,7 @@
           panel.insertAdjacentHTML('beforeend',
             '<div class="block" id="tplBlock">' +
               '<div class="section-head tpl-head">' +
-                '<div><h4 style="margin:0">合同模板</h4><p class="sub" style="margin:4px 0 0">上传 PDF / Word 模板，随时预览原件，或直接载入工作台编辑器起草。</p></div>' +
+                '<div><h3 style="margin:0">合同模板</h3><p class="sub" style="margin:4px 0 0">上传 PDF / Word 模板，随时下载原件，或直接用来起草合同台账。</p></div>' +
                 '<div class="inline-actions"><button class="secondary" type="button" data-lg-act="tpl-upload">＋ 上传模板（PDF / Word）</button></div>' +
               '</div>' +
               '<input id="tplFileIn" type="file" hidden accept=".pdf,.docx,.doc,.png,.jpg,.jpeg,.webp,.txt,.html" />' +
@@ -4917,9 +4917,22 @@
           if (ff) ff.addEventListener('change', function (e) { var f = e.target.files && e.target.files[0]; if (f) fullRestore(f); e.target.value = ''; });
         }
 
+        /* ---------------- 合同制作 → 合同模板（隐藏原表单/预览/草稿列表，只保留模板） ---------------- */
+        function replaceContractsWithTemplates() {
+          var panel = document.getElementById('panel-contracts');
+          if (!panel || panel.getAttribute('data-tpl-replaced')) return;
+          panel.setAttribute('data-tpl-replaced', '1');
+          var navBtn = document.querySelector('.nav-item[data-tab="contracts"]');
+          if (navBtn) { var sp = navBtn.querySelector('span'); if (sp) sp.textContent = '合同模板'; }
+          Array.prototype.forEach.call(panel.children, function (child) {
+            if (child.id !== 'tplBlock') child.style.display = 'none';
+          });
+        }
+
         /* ---------------- 接入 Sofia 原有渲染链 ---------------- */
         TAB_LABELS.ledger = '合同台账';
         TAB_LABELS.licenses = '证照资质';
+        TAB_LABELS.contracts = '合同模板'; /* 原「合同制作」改名为「合同模板」 */
         defaults.ledger = [];
         defaults.licenses = [];
         defaults.templates = [];
@@ -4939,9 +4952,10 @@
           _navCounts();
           ensureTables();
           var ql = String(state.ui.search || '').toLowerCase();
-          var a = document.getElementById('count-ledger'), b = document.getElementById('count-licenses');
+          var a = document.getElementById('count-ledger'), b = document.getElementById('count-licenses'), c = document.getElementById('count-contracts');
           if (a) a.textContent = state.ledger.filter(function (r) { return hit(ql, [r.name, r.partyA, r.partyB, r.no]); }).length;
           if (b) b.textContent = state.licenses.filter(function (r) { return hit(ql, [r.name, r.no, r.code, r.addr]); }).length;
+          if (c) c.textContent = state.templates.length; /* 合同制作 → 合同模板，计数改为模板数 */
         };
 
         var _render = render;
@@ -4953,6 +4967,15 @@
           ensureTables();
           var box = els.overviewStats;
           if (!box) return;
+          /* 原「合同草稿」卡片改为「合同模板」 */
+          Array.prototype.forEach.call(box.querySelectorAll('.stat'), function (s) {
+            var lb = s.querySelector('.label');
+            if (lb && lb.textContent === '合同草稿') {
+              lb.textContent = '合同模板';
+              var v = s.querySelector('.value'); if (v) v.textContent = state.templates.length;
+              var hh = s.querySelector('.hint'); if (hh) hh.textContent = state.templates.length ? '已上传的模板' : '上传合同模板后可用';
+            }
+          });
           var total = state.ledger.reduce(function (a, r) { return a + (Number(r.amount) || 0); }, 0);
           var extra = [
             { label:'合同台账', value:state.ledger.length, hint:state.ledger.length ? '累计 ' + money(total) : '上传合同自动建账' },
@@ -4985,6 +5008,7 @@
         rvInject();
         tplInject();
         backupInject();
+        replaceContractsWithTemplates();
         window.__SOFIA_LEGAL__ = {
           renderAll: renderAll, deOpen: deOpen, ocrOpen: ocrOpen, LG: LG,
           /* 冒烟 / 调试钩子 */
