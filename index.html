@@ -4944,8 +4944,37 @@
           merged.ledger = Array.isArray(s.ledger) ? s.ledger : [];
           merged.licenses = Array.isArray(s.licenses) ? s.licenses : [];
           merged.templates = Array.isArray(s.templates) ? s.templates : [];
+          /* 关键修复：用户只用法务模块（原表空）时，原版会 return seedData() 灌示例数据，
+             把用户法务数据顶掉。这里保住法务数据，并清掉不应出现的示例原表。 */
+          var hasLegal = merged.ledger.length || merged.licenses.length || merged.templates.length;
+          if (hasLegal) {
+            var origKeys = ['customerTypes', 'customers', 'todos', 'contracts', 'reviews', 'schedules', 'shipments', 'timeLogs'];
+            var origEmpty = origKeys.every(function (k) { return !Array.isArray(s[k]) || s[k].length === 0; });
+            if (origEmpty) origKeys.forEach(function (k) { merged[k] = []; });
+          }
           return merged;
         };
+
+        /* 抢救初始 state：页面加载时 state 由「原版 normalizeState」构造（早于本代码执行），
+           若法务数据被 seedData 覆盖，从这里恢复，并清掉示例原表。 */
+        function recoverLegalData() {
+          try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            var s = JSON.parse(raw);
+            var hasLegal = (Array.isArray(s.ledger) && s.ledger.length) ||
+                           (Array.isArray(s.licenses) && s.licenses.length) ||
+                           (Array.isArray(s.templates) && s.templates.length);
+            if (!hasLegal) return;
+            state.ledger = Array.isArray(s.ledger) ? s.ledger : [];
+            state.licenses = Array.isArray(s.licenses) ? s.licenses : [];
+            state.templates = Array.isArray(s.templates) ? s.templates : [];
+            var origKeys = ['customerTypes', 'customers', 'todos', 'contracts', 'reviews', 'schedules', 'shipments', 'timeLogs'];
+            var origEmpty = origKeys.every(function (k) { return !Array.isArray(s[k]) || s[k].length === 0; });
+            if (origEmpty) origKeys.forEach(function (k) { state[k] = []; });
+            saveState();
+          } catch (e) {}
+        }
 
         var _navCounts = navCounts;
         navCounts = function () {
@@ -5003,6 +5032,7 @@
         };
 
         /* 首次补表（初始 state 在包装前已构造） */
+        recoverLegalData();
         ensureTables();
         /* 往原有「合同审核 / 合同制作」面板注入新区块（在原表单元素上追加，不破坏原有事件绑定） */
         rvInject();
